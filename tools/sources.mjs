@@ -1,11 +1,13 @@
 // The pages this guide cites, one entry per page (not per site). Every page was fetched and read for this entry in
 // launch week (19-20 November 2026); `read` is the day it was read, `published` what the page itself shows. The
 // number a guide shows, [n], is the page's position in this list. Facts were read, then written fresh in our own words.
+import { ADDED_SOURCES } from './sources-added.mjs';
+
 export const READ_ON = '19-20 Nov 2026';
 
 const p = (id, site, title, url, published, read = '2026-11-19') => ({ id, site, title, url, published, read });
 
-export const SOURCES = [
+const FIRST_PASS = [
   // PowerPyx: the launch-day trophy guide and its per-topic location guides.
   p('pp', 'PowerPyx', 'GTA 6 (Grand Theft Auto VI) Trophy Guide & Roadmap', 'https://www.powerpyx.com/gta-6-grand-theft-auto-vi-trophy-guide-roadmap/', '2026-11-18'),
   p('pp-med', 'PowerPyx', 'GTA 6 All Meditation Spot Locations', 'https://www.powerpyx.com/?p=370569', '2026-11-18'),
@@ -147,6 +149,9 @@ export const SOURCES = [
   p('ozc', 'Of Zen and Computing', 'GTA 6 Trophy List (November 2026) All 55 Trophies', 'https://www.ofzenandcomputing.com/gta-6-trophy-list-trophies-achievements/', '2026-11-18'),
   p('ggd-bad', 'Gamer Guides', 'Bad Luck, I Guess - PlayStation Trophies - Grand Theft Auto VI', 'https://www.gamerguides.com/grand-theft-auto-vi/psn-trophies/bad-luck-i-guess', 'undated'),
 ];
+
+// The first pass (19-20 Nov), then the pages read for the 20 Nov second-source pass (sources-added.mjs).
+export const SOURCES = [...FIRST_PASS, ...ADDED_SOURCES];
 
 // Read or tried, and deliberately not cited: shown in the app's Sources view so the research is honest about its gaps.
 export const NOT_CITED = [

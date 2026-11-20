@@ -20,7 +20,8 @@ export function renderGuidePanel(root, ctx) {
       h('div', { class: 'guide-title' },
         h('h2', null, displayName(trophy, ctx.store)),
         masked ? h('p', { class: 'meta-line' }, `${GRADES[trophy.grade].label} · roadmap stage ${trophy.stage}`) : renderBadges(trophy)),
-      renderEarnedControls(trophy, ctx)),
+      renderEarnedControls(trophy, ctx),
+      trophy.count > 1 && renderCounter(trophy, ctx)),
     masked ? renderMaskedNotice(trophy, ctx) : renderGuideBody(trophy, ctx),
   );
 }
@@ -29,18 +30,23 @@ function renderEarnedControls(trophy, ctx) {
   const earned = ctx.store.isEarned(trophy.id);
   return h('div', { class: 'earned-controls' },
     toggleButton(earned, { class: 'earn-button', onclick: () => ctx.store.toggleEarned(trophy.id) },
-      earned ? '✓ Earned' : 'Mark earned'),
-    trophy.count > 1 && renderCounter(trophy, ctx));
+      earned ? '✓ Earned' : 'Mark earned'));
 }
 
+// "Your count − 9 / 18 meditations +" and a small bar: the reader's own tally, saved with their progress.
 function renderCounter(trophy, ctx) {
   const { store } = ctx;
   const step = trophy.count >= 10000 ? 10000 : 1;
   const value = store.counter(trophy.id);
+  const pct = Math.round((Math.min(value, trophy.count) / trophy.count) * 100);
+  const unit = trophy.unit && trophy.count < 1000 ? ` ${trophy.unit}` : '';
   return h('div', { class: 'counter', title: 'Your own count toward the target, saved with your progress' },
+    h('span', { class: 'counter-label' }, 'Your count'),
     h('button', { type: 'button', 'aria-label': 'Less', onclick: () => store.setCounter(trophy.id, value - step, trophy.count) }, '−'),
-    h('span', null, h('b', null, formatCount(value)), `/${formatCount(trophy.count)}`),
-    h('button', { type: 'button', 'aria-label': 'More', onclick: () => store.setCounter(trophy.id, value + step, trophy.count) }, '+'));
+    h('span', { class: 'counter-value' }, h('b', null, formatCount(value)), ` / ${formatCount(trophy.count)}${unit}`),
+    h('button', { type: 'button', 'aria-label': 'More', onclick: () => store.setCounter(trophy.id, value + step, trophy.count) }, '+'),
+    h('span', { class: 'counter-bar', role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('i', { style: `width:${pct}%` })),
+    h('small', null, `${pct}%`));
 }
 
 function renderMaskedNotice(trophy, ctx) {
@@ -49,18 +55,19 @@ function renderMaskedNotice(trophy, ctx) {
     h('button', { type: 'button', class: 'reveal big', onclick: () => ctx.store.revealTrophy(trophy.id) }, 'Reveal this trophy'));
 }
 
+// The description exactly as PlayStation lists it, cited to the full-list pages it was checked against.
 function renderOfficialBox(trophy, ctx) {
   return h('section', { class: 'official-box' },
     h('h3', null, 'Official description',
       h('small', null, `${GRADES[trophy.grade].label} · #${trophy.id}/${ctx.data.trophies.length}${trophy.hidden ? ' · PSN-hidden' : ''} · stage ${trophy.stage}${trophy.chapter != null ? ` · ${chapterLabel(trophy.chapter).replace('Chapter', 'Ch')}` : ''}`)),
-    h('p', { class: 'official' }, `“${trophy.description}”`));
+    h('p', { class: 'official' }, `“${trophy.description}”`, ' ', renderCiteMarks(ctx.data.officialFrom, ctx)));
 }
 
 function renderBadges(trophy) {
   const level = trophy.missable?.level;
   return h('p', { class: 'badges' },
     level && h('em', { class: `badge ${level}` }, MISSABLE_LEVELS[level].label),
-    trophy.disputes.length > 0 && h('em', { class: 'badge dispute' }, trophy.disputes.length > 1 ? `Sources differ · ${trophy.disputes.length}` : 'Sources differ'),
+    trophy.disputes.length > 0 && h('em', { class: 'badge dispute' }, `Sources differ · ${trophy.disputes.length}`),
     trophy.unconfirmed.length > 0 && h('em', { class: 'badge unconfirmed' }, 'Unconfirmed detail'));
 }
 

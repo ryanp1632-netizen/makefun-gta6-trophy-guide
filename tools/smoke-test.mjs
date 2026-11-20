@@ -34,8 +34,14 @@ try {
   await b.open('/?view=tracker&trophy=28');
   const saved = await b.evaluate('JSON.parse(localStorage.getItem("leonida55.progress.v1"))');
   check('progress saved in localStorage and kept on reload', JSON.stringify(saved.earned) === '[4,28]', JSON.stringify(saved.earned));
-  check('counter saved (2/18 meditations)', saved.counters['28'] === 2 && (await b.evaluate(text('.counter'))).includes('2/18'));
-  check('progress meter counts it', (await b.evaluate(text('.big-count'))).startsWith('2/55'));
+  check('counter saved (2 / 18 meditations)', saved.counters['28'] === 2 && (await b.evaluate(text('.counter'))).includes('2 / 18'));
+  check('progress meter counts it', /^2 \/ 55/.test(await b.evaluate(text('.big-count'))));
+  const header = await b.evaluate(text('#progress-summary'));
+  check('header shows earned per grade (P 0/1 G 0/2 S 0/6 B 2/46)', /P0\/1\s*G0\/2\s*S0\/6\s*B2\/46/.test(header), header);
+  check('header sums the collectible counters (earned #28 counts all 18)', /18 collectibles logged/.test(header), header);
+  check('header says when progress was last saved in this browser', /Saved in this browser \d\d:\d\d/.test(header) && saved.savedAt && !Number.isNaN(Date.parse(saved.savedAt)), header);
+  check('counter reads "Your count − 2 / 18 meditations +"', /Your count−2 \/ 18 meditations\+/.test(await b.evaluate(text('.counter'))), await b.evaluate(text('.counter')));
+  check('official description box cites the full-list pages', await b.evaluate('document.querySelectorAll(".official-box .cite").length') >= 2);
 
   check('guide shows the official description box', (await b.evaluate(text('.official-box'))).includes('Meditate at every spot across Leonida.'));
   check('guide shows a missable window with a point of no return', /Point of no return/.test(await b.evaluate(text('.note.window'))));
@@ -47,7 +53,7 @@ try {
 
   const chip = (label) => `[...document.querySelectorAll("#filters .chip")].find((c) => c.textContent.startsWith(${JSON.stringify(label)})).click()`;
   const counts = {};
-  for (const label of ['Missable', 'Story', 'Collectibles', 'Activities', 'PSN-hidden', 'Disputed', 'Online']) {
+  for (const label of ['Missable', 'Story', 'Collectibles', 'Activities', 'PSN-hidden', 'Disputed']) {
     await b.evaluate(chip(label));
     counts[label] = await b.evaluate(rows);
   }
@@ -56,7 +62,7 @@ try {
   check('Collectibles and Activities filters', counts.Collectibles > 0 && counts.Activities > 0, `${counts.Collectibles}/${counts.Activities}`);
   check('PSN-hidden filter shows 28', counts['PSN-hidden'] === 28);
   check('Disputed filter', counts.Disputed > 0, String(counts.Disputed));
-  check('Online filter shows 0', counts.Online === 0 && await b.evaluate('document.querySelector("#trophy-list .empty") !== null'));
+  check('no Online chip while the list has no online trophy', await b.evaluate('![...document.querySelectorAll("#filters .chip")].some((c) => c.textContent.startsWith("Online"))'));
   await b.evaluate(chip('All'));
   await b.evaluate(chip('Earned'));
   check('Earned filter', await b.evaluate(rows) === 2);
@@ -157,9 +163,20 @@ try {
   const siteRows = await b.evaluate('document.querySelectorAll(".matrix tbody tr").length');
   check('sources view: one matrix row per site', siteRows >= 18, String(siteRows));
 
-  await b.open('/?demo=1');
+  await b.open('/?view=tracker&kind=online');
+  check('?kind=online lists 0 trophies', await b.evaluate(rows) === 0 && await b.evaluate('document.querySelector("#trophy-list .empty") !== null'));
+
+  await b.open('/?demo=1&view=tracker&trophy=28&top=1');
+  check('demo progress: 11 earned in the header', /^11 \/ 55/.test(await b.evaluate(text('.big-count'))));
+  const visible = await b.evaluate(`(() => { const list = document.getElementById('trophy-list').getBoundingClientRect();
+    return [...document.querySelectorAll('#trophy-list .trophy-row')].filter((r) => { const b = r.getBoundingClientRect(); return b.top >= list.top && b.top < list.bottom - 20; })
+      .map((r) => r.classList.contains('masked')); })()`);
+  check('demo cover: 7+ rows in view, at most one spoiler placeholder', visible.length >= 7 && visible.filter(Boolean).length <= 1, JSON.stringify(visible));
+  const next = await b.evaluate('[...document.querySelectorAll(".next-up li")].map((li) => li.textContent)');
+  check('next up: 4 trophies, at most one hidden story trophy', next.length === 4 && next.filter((t) => t.includes('(hidden)')).length <= 1, JSON.stringify(next));
+  check('demo saves under its own key', (await b.evaluate('JSON.parse(localStorage.getItem("leonida55.demo.v1")).earned.length')) === 11);
   await b.open('/?view=tracker');
-  check('demo mode never overwrites saved progress', (await b.evaluate(text('.big-count'))).startsWith('2/55'));
+  check('demo mode never overwrites saved progress', /^2 \/ 55/.test(await b.evaluate(text('.big-count'))) && (await b.evaluate('JSON.parse(localStorage.getItem("leonida55.progress.v1")).earned.join()')) === '4,28');
   check('no request left app/, no console error', b.problems.length === 0, b.problems.join('; '));
 } finally {
   await b.close();

@@ -19,7 +19,7 @@ export function renderMissablesView(root, ctx) {
   root.replaceChildren(
     h('header', { class: 'view-head' },
       h('h2', null, 'Missables & points of no return'),
-      h('p', null, `${flagged.length} flagged: ${count('missable')} confirmed missable, ${count('possible')} possibly missable, ${count('risk')} at risk. The other ${data.trophies.length - flagged.length} stay open after the credits. `,
+      h('p', null, `${flagged.length} flagged: ${count('missable')} missable, ${count('possible')} possibly missable, ${count('risk')} at risk; the other ${data.trophies.length - flagged.length} checked and none. `,
         intro.text, ' ', renderCiteMarks(intro.cite, ctx))),
     renderMissableTimeline(flagged, ctx),
     h('div', { class: 'missable-grid' }, flagged.map((t) => renderMissableCard(t, ctx))),
@@ -35,7 +35,8 @@ function renderMissableTimeline(flagged, ctx) {
   const { groups, otherMissables = [] } = ctx.data.roadmap;
   return h('ol', { class: 'timeline', 'aria-label': 'Points of no return by chapter' }, TIMELINE.map((label, i) => {
     if (i === 0) return null;
-    const here = flagged.filter((t) => Math.max(1, t.missable.ponrChapter ?? 6) === i);
+    // A window with no known point of no return gets a card but no pin on the timeline.
+    const here = flagged.filter((t) => t.missable.ponrChapter != null && Math.max(1, t.missable.ponrChapter) === i);
     const group = i > 0 && i < 6 ? groups.find((g) => g.chapters?.includes(i)) : null;
     return h('li', { class: here.length ? 'has' : '' },
       h('b', null, label),

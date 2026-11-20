@@ -6,7 +6,8 @@
 // trophy missing from the roadmap or placed twice.
 // Usage: node tools/build-data.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
-import { GUIDES } from './guides.mjs';
+import { GUIDES as FIRST_PASS, UNITS } from './guides.mjs';
+import { BACKING } from './backing.mjs';
 import { SOURCES, NOT_CITED, READ_ON } from './sources.mjs';
 import { STAGES, GROUPS, OTHER_MISSABLES, NOT_MISSABLE, SAVE_PLAN, MISSABLES_INTRO } from './roadmap.mjs';
 
@@ -19,6 +20,20 @@ const NL = '\n';
 
 const sourceIndex = new Map(SOURCES.map((s, i) => [s.id, i + 1]));
 const errors = [];
+
+// The 20 Nov pass (backing.mjs) adds second sources to existing steps ({ cite: { stepNumber: [ids] } }), rewords a
+// step a page corrected ({ text: { stepNumber: text } }) and adds new cited steps ({ steps: [[text, ...ids,
+// { after: stepNumber }?]] }); merged here so guides.mjs keeps the first pass as it was read.
+const GUIDES = Object.fromEntries(Object.entries(FIRST_PASS).map(([id, g]) => {
+  const b = BACKING[id];
+  if (!b) return [id, g];
+  const steps = g.steps.map(([text, ...ids], i) => [b.text?.[i + 1] ?? text, ...ids, ...(b.cite?.[i + 1] ?? []).filter((x) => !ids.includes(x))]);
+  for (const n of [...Object.keys(b.cite ?? {}), ...Object.keys(b.text ?? {})]) if (!steps[n - 1]) errors.push(`backing #${id}: no step ${n}`);
+  const added = (b.steps ?? []).map((s, order) => (typeof s.at(-1) === 'object' ? { step: s.slice(0, -1), after: s.at(-1).after, order } : { step: s, after: Infinity, order }));
+  // Insert from the back so each "after" still counts first-pass steps; ties keep their written order.
+  for (const { step, after } of added.sort((x, y) => y.after - x.after || y.order - x.order)) steps.splice(Math.min(after, steps.length), 0, step);
+  return [id, { ...g, steps, disputes: [...(g.disputes ?? []), ...(b.disputes ?? [])] }];
+}));
 
 // The official list checks itself first: ids numbered 1-55 in PlayStation order, each name once, every field set,
 // grade and PSN-hidden counts equal to its own "totals" (1/2/6/46, 28 hidden), and its "checked" pages in our table.
@@ -90,6 +105,7 @@ const trophies = official.trophies.map((t) => {
       kinds: g.k,
       chapter: g.ch ?? null,
       count: g.c ?? null,
+      unit: g.c ? UNITS[t.id] ?? null : null,
       guide: lines.join(NL),
       cites: steps.map((s) => s.cite),
       missable,

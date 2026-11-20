@@ -50,24 +50,21 @@ export function renderFilterControls(root, ctx) {
   }, label, count == null ? null : h('b', null, count));
   const earnedCount = data.trophies.filter((t) => store.isEarned(t.id)).length;
   const search = h('input', {
-    id: 'search-box', type: 'search', placeholder: 'Search name, description, guide…', value: filters.query,
+    id: 'search-box', type: 'search', placeholder: 'Search…', title: 'Search names, descriptions and guides', value: filters.query,
     'aria-label': 'Search trophies',
     oninput: (e) => { filters.query = e.target.value; ctx.refreshList(); },
   });
-  const gradeLabel = (g) => {
-    const all = data.trophies.filter((t) => t.grade === g);
-    return `${all.filter((t) => store.isEarned(t.id)).length}/${all.length}`;
-  };
+  const gradeCount = (g) => data.trophies.filter((t) => t.grade === g).length;
+  // The game lists no online trophy, so the Online chip only appears if a list ever has one (or it is the active filter).
+  const kinds = KIND_CHIPS.filter((k) => k !== 'online' || filters.kind === 'online' || data.trophies.some((t) => matchesKind(t, k)));
   root.replaceChildren(
-    h('div', { class: 'chip-row', role: 'group', 'aria-label': 'Kind and status' },
-      KIND_CHIPS.map((k) => chip('kind', k, CHIP_LABELS[k] ?? KINDS[k], data.trophies.filter((t) => matchesKind(t, k)).length,
+    h('div', { class: 'chip-row', role: 'group', 'aria-label': 'Filter by kind, status and grade' },
+      kinds.map((k) => chip('kind', k, CHIP_LABELS[k] ?? KINDS[k], data.trophies.filter((t) => matchesKind(t, k)).length,
         k === 'missable' ? ' chip-warn' : k === 'disputed' ? ' chip-dispute' : '')),
-      chip('status', 'todo', 'Not earned', data.trophies.length - earnedCount),
-      chip('status', 'earned', 'Earned', earnedCount)),
-    h('div', { class: 'chip-row search-row' },
-      h('span', { class: 'chip-group', role: 'group', 'aria-label': 'Grade, earned of total (press again to clear)' },
-        Object.entries(GRADES).map(([g, info]) => chip('grade', g,
-          h('i', { class: `medal ${g}`, title: info.label }, info.letter), gradeLabel(g), ' grade-chip'))),
+      chip('status', 'todo', 'To do', data.trophies.length - earnedCount),
+      chip('status', 'earned', 'Earned', earnedCount),
+      Object.entries(GRADES).map(([g, info]) => chip('grade', g,
+        h('i', { class: `medal ${g}`, title: `${info.label}: ${gradeCount(g)} trophies` }, info.letter), null, ' grade-chip')),
       search),
   );
 }

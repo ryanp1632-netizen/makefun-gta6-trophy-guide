@@ -46,7 +46,7 @@ export function renderAuditStrip(root, data) {
     fact(s.claimsMulti, ' backed by 2+ sites', 'good'),
     fact(`${s.guidesCited}/${s.total}`, ' guides cite sources', s.guidesCited === s.total ? 'good' : 'bad'),
     fact(`${s.pages} pages · ${s.sites} sites`, ` read ${s.readOn}`),
-    fact(`${s.missable} missable · ${s.possible} possibly · ${s.risk} at risk`, '', 'warn'),
+    fact(`${s.missable} missable · ${s.possible} possibly missable · ${s.risk} at risk`, ` · ${s.total - s.missable - s.possible - s.risk} none`, 'warn'),
     fact(s.disputes, ' disputes shown both ways', 'dispute'),
     fact(s.unconfirmed, ' unconfirmed, marked'),
     fact(`Online ${s.online}`, ''),

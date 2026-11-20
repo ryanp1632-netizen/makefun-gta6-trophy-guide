@@ -1,5 +1,5 @@
-// Takes the 4 screenshots in screenshots/ from real renders of app/ in headless Chrome (tools/cdp.mjs): a 1024x640
-// CSS viewport at device scale 1.25, captured as 1280x800 JPEG, lowering the quality until each is under 250 KiB.
+// Takes the 4 screenshots in screenshots/ from real renders of app/ in headless Chrome (tools/cdp.mjs): a 1120x700
+// CSS viewport at device scale 8/7, captured as 1280x800 JPEG, lowering the quality until each is under 250 KiB.
 // Demo progress comes from ?demo=1, which never touches saved progress. Fails on any off-app request or console error.
 // Usage: node tools/shoot.mjs [--only 1]
 import { writeFileSync, readdirSync } from 'node:fs';

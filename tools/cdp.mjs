@@ -19,8 +19,8 @@ export async function until(fn, ms = 15000) {
   }
 }
 
-// The viewport is 1024x640 CSS pixels at device scale 1.25: a 1280x800 capture whose text reads 25% larger.
-export const VIEWPORT = { width: 1024, height: 640, scale: 1.25 };
+// The viewport is 1120x700 CSS pixels at device scale 8/7: a 1280x800 capture that fits more of the guide on screen.
+export const VIEWPORT = { width: Number(process.env.VW ?? 1120), height: Number(process.env.VH ?? 700), scale: Number(process.env.VS ?? 8 / 7) };
 
 export async function startBrowser({ port = 8137, debugPort = 9337, viewport = VIEWPORT } = {}) {
   const server = spawn(process.execPath, ['serve.ts', '--port', String(port)], { cwd: root, stdio: 'ignore' });

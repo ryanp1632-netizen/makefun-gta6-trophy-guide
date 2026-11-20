@@ -78,6 +78,7 @@ export function indexGuideData(trophyDoc, roadmap, sources) {
     sourceUse: countSourceUse(trophies, sources),
     sitesOf: (ids) => [...new Set(ids.map(siteOf).filter(Boolean))],
     notCited: roadmap.notCited ?? [],
+    officialFrom: (trophyDoc.hiddenFrom ?? []).filter((id) => sourceById.has(id)),
     readOn: roadmap.readOn,
     roadmap,
     groupById: new Map(roadmap.groups.map((g) => [g.id, g])),

@@ -18,6 +18,10 @@ export const GUIDES = {
       ['Cheats unlock only after the story (Progress menu); entering one turns trophies off for the session, so keep a clean save.', 'tt-cheats', 'sn-cheats', 'kg', 'fx'],
       ['Order: story with optional missions (60-80 h), then the 100% checklist and 70 of 80 challenges (~100 h), then strangers and leftovers.', 'pp', 'kg', 'pp-length'],
     ],
+    mis: { level: 'possible', ch: 1, cite: ['pp', 'pp-med', 'gb', 'griv', 'vgc-ch1', 'ol-miss'],
+      why: 'It needs Positive Mental Attitude, whose Chapter 1 balcony meditation may count and cannot be redone.',
+      ponr: 'starting Tourist Trap, Chapter 1.',
+      before: 'accept Lucia\'s meditation, then save.' },
     disputes: [
       { topic: 'Time to platinum', a: ['About 200 hours.', 'pp', 'kg', 'psl'], b: ['250 hours or more, perhaps past 300.', 'ps'], call: 'Plan on ~200 h; the longer figure assumes a slower 100% clean-up.' },
       { topic: 'Cheats and saving', a: ['A cheat turns off trophies and saving for the rest of the session.', 'tt-cheats', 'altchar', 'pp'], b: ['Only trophies are blocked; saving still works (judged from GTA V and RDR2).', 'bb-cheats'], call: 'Never save with a cheat on; reload a clean save.' },
@@ -201,7 +205,7 @@ export const GUIDES = {
       ['Menu: Touch Pad > Activities > Shooting Ranges; some challenges unlock only after others.', 'ps'],
     ],
     disputes: [
-      { topic: 'Number of ranges', a: ['12 range locations.', 'pp', 'gb'], b: ['Two ranges hold all 42 golds.', 'pp-range', 'ps', 'ol'], call: 'Two: PowerPyx\'s own range guide lists only Griffin and Rodgers Ranch.' },
+      { topic: 'Number of ranges', a: ['12 range locations.', 'pp', 'gb'], b: ['Two ranges hold all 42 golds, in 12 challenges between them.', 'pp-range', 'ps', 'ol', 'b-egm-range'], call: 'Two ranges: the "12" counts challenges, not places to visit.' },
       { topic: 'What 100% needs', a: ['All 42 golds.', 'pp-range', 'kg', 'ps-100'], b: ['A bronze in each challenge.', 'gb-range'], call: 'Get the 42 golds; the trophy needs them anyway.' },
     ],
   },
@@ -474,7 +478,7 @@ export const GUIDES = {
       ['Escape on a fast bike via the Ambrosia train tunnel; military vehicles cannot be kept.', 'gg-tank', 'ol-base'],
     ],
     disputes: [
-      { topic: 'When it pops', a: ['A few seconds after you get in.', 'ol-base'], b: ['Only after you fire on enemies from inside.', 'pp', 'gb', 'gg-tank'], call: 'Shoot from the tank until it pops.' },
+      { topic: 'When it pops', a: ['As soon as you take the tank, or a few seconds after you get in.', 'ol-base', 'd-pp-tank'], b: ['Only after you fight from inside it.', 'pp', 'gb', 'gg-tank', 'd-g8jp-list'], call: 'Shoot from the tank until it pops.' },
     ],
   },
   39: {
@@ -610,6 +614,9 @@ export const GUIDES = {
       ['Output Lag says it may pop during normal play.', 'ol'],
       ['Gamer Guides shows its unlock condition only as "Save Mark obtained".', 'ggd-bad'],
     ],
+    mis: { level: 'risk', ch: null, cite: ['ozc', 'ol', 'pp'],
+      why: 'Its trigger is unknown, so no source can promise it stays open; Of Zen and Computing counts such vague trophies as the most at risk.',
+      ponr: 'none known; keep a manual save before one-off missions.' },
     disputes: [
       { topic: 'Likely trigger', a: ['Rob the Prologue\'s Payday Loans again.', 'pp'], b: ['Succeed on a second attempt.', 'gb'], call: 'Unconfirmed: we will not invent a method.' },
     ],
@@ -686,4 +693,12 @@ export const GUIDES = {
       { topic: 'Where to register', a: ['A Pay \'n\' Spray or Mod Shop.', 'ps'], b: ['Moses first; Pay \'n\' Spray from Chapter 3.', 'pp', 'gb', 'ol'], call: 'Start with Moses, then Pay \'n\' Spray.' },
     ],
   },
+};
+
+// What each counted trophy counts, for the counter ("9 / 18 meditations"); money counts need no unit.
+export const UNITS = {
+  1: 'trophies', 14: '%', 15: 'stunts', 16: 'activity types', 17: 'gold medals', 18: 'drone races', 19: 'races',
+  21: 'arcade game', 23: 'shipwreck sets', 25: 'strands', 26: 'cars', 28: 'meditations', 30: 'card sets',
+  31: 'WAiNK spots', 32: 'challenges', 34: 'shops', 35: 'vehicles', 36: 'takedowns', 40: 'vaults', 43: 'gangs',
+  46: 'valuables', 48: 'actions', 51: 'kicks', 54: 'garages', 55: 'vehicles',
 };

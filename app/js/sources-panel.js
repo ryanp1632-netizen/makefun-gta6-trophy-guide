@@ -3,7 +3,7 @@
 import { h } from './dom.js';
 import { displayName, isSpoilerHidden } from './spoilers.js';
 import { renderMedal, plural } from './citations.js';
-import { citationsOf } from './data.js';
+import { citationsOf, formatCount } from './data.js';
 
 export function renderSidePanel(root, ctx) {
   const trophy = ctx.data.byId.get(ctx.state.selectedId);
@@ -12,21 +12,43 @@ export function renderSidePanel(root, ctx) {
     trophy ? renderSourceCards(trophy, ctx) : null);
 }
 
+// The next unearned trophies in roadmap order. While the spoiler shield is on, only the first still-hidden story
+// trophy is listed (as "Story trophy · Ch N (hidden)"), so the list stays useful instead of a column of placeholders.
+export function pickNextUp(ctx, limit = 4) {
+  const { data, store } = ctx;
+  const picked = [];
+  let hiddenShown = false;
+  for (const t of data.ordered) {
+    if (picked.length === limit) break;
+    if (store.isEarned(t.id) || t.id === ctx.state.selectedId) continue;
+    if (isSpoilerHidden(t, store)) {
+      if (hiddenShown) continue;
+      hiddenShown = true;
+    }
+    picked.push(t);
+  }
+  return picked;
+}
+
 export function renderNextUp(ctx) {
   const { data, store } = ctx;
-  const next = data.ordered.filter((t) => !store.isEarned(t.id) && t.id !== ctx.state.selectedId).slice(0, 4);
   return h('section', { class: 'next-up' },
     h('h2', null, 'Next up', h('small', null, 'roadmap order')),
-    h('ol', null, next.map((t) => h('li', { onclick: () => ctx.selectTrophy(t.id) },
-      renderMedal(t.grade),
-      h('span', null, h('b', null, displayName(t, store)), h('small', null, `${data.groupById.get(t.group).short}${t.count > 1 ? ` · ${store.counter(t.id)}/${t.count}` : ''}`))))));
+    h('ol', null, pickNextUp(ctx).map((t) => {
+      const hidden = isSpoilerHidden(t, store);
+      const where = data.groupById.get(t.group).short;
+      return h('li', { class: hidden ? 'hidden-story' : '', onclick: () => ctx.selectTrophy(t.id) },
+        renderMedal(t.grade),
+        h('span', null, h('b', null, displayName(t, store), hidden ? ' (hidden)' : ''),
+          h('small', null, t.count > 1 ? `${where} · ${formatCount(store.counter(t.id))}/${formatCount(t.count)}${t.unit && t.count < 1000 ? ` ${t.unit}` : ''}` : hidden ? where : `${where} · ${t.description}`)));
+    })));
 }
 
 function renderSourceCards(trophy, ctx) {
   const masked = isSpoilerHidden(trophy, ctx.store);
   const sites = ctx.data.sitesOf(trophy.sources).length;
   return h('section', { class: 'source-cards' },
-    h('h2', null, 'Sources for this guide', h('small', null, `${plural(trophy.sources.length, 'page')} · ${plural(sites, 'site')}`)),
+    h('h2', null, 'Sources', h('small', null, `${plural(trophy.sources.length, 'page')} · ${plural(sites, 'site')}`)),
     masked ? h('p', { class: 'placeholder' }, 'Hidden with the guide.') :
       h('ol', null, [...trophy.sources].sort((a, b) => citesHere(b, trophy) - citesHere(a, trophy)).map((id) => renderSourceCard(id, trophy, ctx))));
 }
