@@ -3,23 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GTA VI trophy checklist</title>
-<link rel="stylesheet" href="style.css">
+<title>Leonida 55 · GTA VI trophy guide & tracker</title>
+<meta name="description" content="Offline guide and tracker for the 55 PS5 trophies of Grand Theft Auto VI: official list, saved checklist, roadmap, missables and a cited guide to every trophy. Unofficial fan project.">
+<link rel="stylesheet" href="css/app.css">
+<link rel="modulepreload" href="js/main.js">
 </head>
 <body>
-<header>
-  <h1>GTA VI trophy checklist</h1>
-  <p id="progress">0 of 55 earned</p>
+<header id="top-bar">
+  <div class="brand"><span class="brand-mark" aria-hidden="true"></span><b>Leonida 55</b><small>GTA VI trophy guide · PS5</small></div>
+  <nav id="view-tabs" aria-label="Views">
+    <a href="?view=checklist" data-view="checklist">Checklist</a>
+    <a href="?view=roadmap" data-view="roadmap">Roadmap</a>
+    <a href="?view=missables" data-view="missables">Missables</a>
+    <a href="?view=sources" data-view="sources">Sources</a>
+  </nav>
+  <div class="bar-actions">
+    <label id="spoiler-setting" class="switch"><input id="spoiler-toggle" type="checkbox" checked><span>Spoilers hidden</span></label>
+    <button id="export-button" type="button" title="Download your progress as a .json file">⭳ Export .json</button>
+    <label id="import-button" class="button" title="Load a progress .json file (checked against the official list)">⭱ Import .json<input id="import-file" type="file" accept=".json,application/json"></label>
+  </div>
 </header>
-<div class="controls">
-  <label>Grade <select id="grade"><option value="all">All</option><option value="platinum">Platinum</option><option value="gold">Gold</option><option value="silver">Silver</option><option value="bronze">Bronze</option></select></label>
-  <button id="export" type="button">Export progress</button>
-  <label class="import">Import progress <input id="import" type="file" accept="application/json"></label>
-</div>
-<table>
-  <thead><tr><th>Earned</th><th>Trophy</th><th>Grade</th><th>How to get it</th></tr></thead>
-  <tbody id="rows"></tbody>
-</table>
-<script type="module" src="app.js"></script>
+<p id="audit-strip" aria-label="Data audit, computed at run time">Checking data…</p>
+<section id="progress-summary" aria-label="Progress"></section>
+<main id="app">
+  <section id="checklist-view" class="view three-pane">
+    <aside id="list-pane">
+      <div id="filters"></div>
+      <ol id="trophy-list" aria-label="Trophies"></ol>
+    </aside>
+    <article id="guide-panel" aria-live="polite"></article>
+    <aside id="sources-panel"></aside>
+  </section>
+  <section id="roadmap" class="view" hidden></section>
+  <section id="missables" class="view" hidden></section>
+  <section id="sources-view" class="view" hidden></section>
+</main>
+<p id="toast" role="status" hidden></p>
+<noscript>This guide needs JavaScript (it runs fully offline).</noscript>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -1,4 +1,6 @@
 node_modules/
 .env
 out/
+out1/
+out2/
 *.log
