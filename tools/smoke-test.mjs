@@ -1,45 +1,71 @@
-// Drives the real app in headless Chrome and checks the tracker works: saving and reloading progress, the spoiler
-// rule and per-trophy reveal, kind/grade/search filters, export-file validation on import, every view rendering, and
-// no request leaving app/. Usage: node tools/smoke-test.mjs
+// Drives the real app in headless Chrome and checks the tracker works: roadmap-ordered grouped list, saving and
+// reloading progress and counters, the spoiler shield and per-trophy reveal, kind/missable/PSN-hidden/disputed/grade/
+// status filters and search, the guide's official box, missable window, disputes and cited steps, the source cards,
+// export-file validation on import, every view rendering, and no request leaving app/. Usage: node tools/smoke-test.mjs
 import { startBrowser } from './cdp.mjs';
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'pass' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
 const rows = 'document.querySelectorAll("#trophy-list .trophy-row").length';
+const text = (sel) => `(document.querySelector(${JSON.stringify(sel)})?.textContent ?? "")`;
 
 const b = await startBrowser({ port: 8138, debugPort: 9338 });
 try {
-  await b.open('/?view=checklist&trophy=1');
+  await b.open('/?view=tracker&trophy=1');
   check('all 55 trophies listed', await b.evaluate(rows) === 55);
-  check('audit strip computed', /55\/55 official.*1P 2G 6S 46B.*28 hidden on PSN/.test(await b.evaluate('document.getElementById("audit-strip").textContent')));
-  const masked = await b.evaluate('[...document.querySelectorAll(".trophy-row.masked .row-name")].length');
-  check('spoiler setting on by default hides story/hidden trophies', masked === 28, `${masked} masked`);
-  check('T**s Ass Drug Money not shown while masked', !(await b.evaluate('document.getElementById("trophy-list").textContent.includes("Drug Money")')));
+  const groups = await b.evaluate('document.querySelectorAll("#trophy-list .group-head").length');
+  check('list grouped under 10 roadmap headers', groups === 10, String(groups));
+  check('list starts with the Prologue & Chapter 1 group', (await b.evaluate(text('#trophy-list li'))).includes('Prologue & Chapter 1'));
+  const audit = await b.evaluate(text('#audit-strip'));
+  check('audit strip computed', /55\/55 official.*1P 2G 6S 46B.*28 PSN-hidden.*(\d+)\/\1 claims cited.*backed by 2\+ sites.*55\/55 guides cite.*pages · \d+ sites.*disputes shown/.test(audit), audit.slice(0, 160));
+  const masked = await b.evaluate('document.querySelectorAll(".trophy-row.masked").length');
+  check('spoiler shield on by default hides the 12 story trophies', masked === 12, `${masked} masked`);
+  check('T**s Ass Drug Money not shown while shielded', !(await b.evaluate('document.getElementById("trophy-list").textContent.includes("Drug Money")')));
 
   await b.evaluate('document.querySelector(\'.trophy-row[data-id="4"] input\').click()');
   check('earning a story trophy reveals it', await b.evaluate('document.getElementById("trophy-list").textContent.includes("T**s Ass Drug Money")'));
   await b.evaluate('document.querySelector(\'.trophy-row[data-id="5"] .reveal\').click()');
-  check('Reveal shows one hidden trophy', await b.evaluate('document.getElementById("trophy-list").textContent.includes("Vice City, Baby!")'));
+  check('Reveal shows one story trophy', await b.evaluate('document.getElementById("trophy-list").textContent.includes("Vice City, Baby!")'));
   await b.evaluate('document.querySelector(\'.trophy-row[data-id="28"] input\').click()');
 
-  await b.open('/?view=checklist&trophy=28');
-  const saved = await b.evaluate('JSON.parse(localStorage.getItem("leonida55.progress.v1")).earned');
-  check('progress saved in localStorage and kept on reload', JSON.stringify(saved) === '[4,28]', JSON.stringify(saved));
-  check('progress bar counts it', (await b.evaluate('document.querySelector(".big-count").textContent')).startsWith('2/55'));
+  await b.open('/?view=tracker&trophy=28');
+  await b.evaluate('[...document.querySelectorAll(".counter button")][1].click()');
+  await b.evaluate('[...document.querySelectorAll(".counter button")][1].click()');
+  await b.open('/?view=tracker&trophy=28');
+  const saved = await b.evaluate('JSON.parse(localStorage.getItem("leonida55.progress.v1"))');
+  check('progress saved in localStorage and kept on reload', JSON.stringify(saved.earned) === '[4,28]', JSON.stringify(saved.earned));
+  check('counter saved (2/18 meditations)', saved.counters['28'] === 2 && (await b.evaluate(text('.counter'))).includes('2/18'));
+  check('progress meter counts it', (await b.evaluate(text('.big-count'))).startsWith('2/55'));
+
+  check('guide shows the official description box', (await b.evaluate(text('.official-box'))).includes('Meditate at every spot across Leonida.'));
+  check('guide shows a missable window with a point of no return', /Point of no return/.test(await b.evaluate(text('.note.window'))));
+  check('guide shows a dispute with both sides and our call', await b.evaluate('(() => { const d = document.querySelector(".note.dispute"); return !!d && d.querySelectorAll(".side").length === 2 && d.querySelectorAll(".side .cite").length >= 2 && /Our call/.test(d.textContent); })()'));
+  const stepCites = await b.evaluate('[...document.querySelectorAll(".steps li")].map((li) => li.querySelectorAll(".cite").length)');
+  check('every step of the guide has [n] citations', stepCites.length >= 5 && stepCites.every((n) => n > 0), JSON.stringify(stepCites));
+  check('source cards list each cited page with its use', await b.evaluate('document.querySelectorAll(".source-card").length') >= 3 && /claims? here · in \d+\/55 guides/.test(await b.evaluate(text('.source-card'))));
+  check('next up lists unearned trophies in roadmap order', await b.evaluate('document.querySelectorAll(".next-up li").length') === 4);
 
   const chip = (label) => `[...document.querySelectorAll("#filters .chip")].find((c) => c.textContent.startsWith(${JSON.stringify(label)})).click()`;
-  await b.evaluate(chip('Missable'));
-  check('Missable filter', await b.evaluate(rows) === 4);
-  await b.evaluate(chip('Story'));
-  check('Story filter', await b.evaluate(rows) === 12);
-  await b.evaluate(chip('Online'));
-  check('Online filter shows 0', await b.evaluate(rows) === 0 && await b.evaluate('document.querySelector("#trophy-list .empty") !== null'));
+  const counts = {};
+  for (const label of ['Missable', 'Story', 'Collectibles', 'Activities', 'PSN-hidden', 'Disputed', 'Online']) {
+    await b.evaluate(chip(label));
+    counts[label] = await b.evaluate(rows);
+  }
+  check('Story filter shows 12', counts.Story === 12);
+  check('Missable filter shows the flagged trophies', counts.Missable >= 1 && counts.Missable <= 10, String(counts.Missable));
+  check('Collectibles and Activities filters', counts.Collectibles > 0 && counts.Activities > 0, `${counts.Collectibles}/${counts.Activities}`);
+  check('PSN-hidden filter shows 28', counts['PSN-hidden'] === 28);
+  check('Disputed filter', counts.Disputed > 0, String(counts.Disputed));
+  check('Online filter shows 0', counts.Online === 0 && await b.evaluate('document.querySelector("#trophy-list .empty") !== null'));
   await b.evaluate(chip('All'));
   await b.evaluate(chip('Earned'));
   check('Earned filter', await b.evaluate(rows) === 2);
   await b.evaluate(chip('Earned'));
+  await b.evaluate('document.querySelector(".grade-chip .medal.gold").parentElement.click()');
+  check('Gold grade chip shows 2', await b.evaluate(rows) === 2);
+  await b.evaluate('document.querySelector(".grade-chip .medal.gold").parentElement.click()');
   await b.evaluate(`{ const s = document.getElementById("search-box"); s.value = "Kenton"; s.dispatchEvent(new Event("input")); }`);
-  check('search finds Kenton guides (masked names searched by summary)', await b.evaluate(rows) >= 1);
+  check('search finds the Kenton guide', await b.evaluate(rows) >= 1 && await b.evaluate('document.getElementById("trophy-list").textContent.includes("This Was No Boat Accident")'));
   await b.evaluate(`{ const s = document.getElementById("search-box"); s.value = ""; s.dispatchEvent(new Event("input")); }`);
 
   const validation = await b.evaluate(`(async () => {
@@ -62,9 +88,9 @@ try {
     const data = await loadGuideData();
     const file = JSON.parse(JSON.stringify(buildProgressFile(createProgressStore(), data)));
     const back = validateProgressPayload(file, data);
-    return back.ok && JSON.stringify(back.progress.earned);
+    return back.ok && JSON.stringify([back.progress.earned, back.progress.counters[28]]);
   })()`);
-  check('export file imports back', roundTrip === '[4,28]', String(roundTrip));
+  check('export file imports back with counters', roundTrip === '[[4,28],2]', String(roundTrip));
 
   for (const view of ['roadmap', 'missables', 'sources']) {
     await b.open(`/?view=${view}`);
@@ -74,10 +100,16 @@ try {
   await b.open('/?view=roadmap');
   const placed = await b.evaluate('document.querySelectorAll("#roadmap .road-trophies li").length');
   check('roadmap places all 55 trophies', placed === 55, String(placed));
+  check('roadmap shows points of no return', await b.evaluate('document.querySelectorAll("#roadmap .chapter-warn").length') >= 2);
+  await b.open('/?view=missables');
+  check('missables view: timeline and one card per flagged trophy', await b.evaluate('document.querySelectorAll(".timeline li").length') === 6 && await b.evaluate('document.querySelectorAll(".missable-card").length') === counts.Missable);
+  await b.open('/?view=sources');
+  const siteRows = await b.evaluate('document.querySelectorAll(".matrix tbody tr").length');
+  check('sources view: one matrix row per site', siteRows >= 18, String(siteRows));
 
   await b.open('/?demo=1');
-  await b.open('/?view=checklist');
-  check('demo mode never overwrites saved progress', (await b.evaluate('document.querySelector(".big-count").textContent')).startsWith('2/55'));
+  await b.open('/?view=tracker');
+  check('demo mode never overwrites saved progress', (await b.evaluate(text('.big-count'))).startsWith('2/55'));
   check('no request left app/, no console error', b.problems.length === 0, b.problems.join('; '));
 } finally {
   await b.close();

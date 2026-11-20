@@ -10,29 +10,30 @@
 </head>
 <body>
 <header id="top-bar">
-  <div class="brand"><span class="brand-mark" aria-hidden="true"></span><b>Leonida 55</b><small>GTA VI trophy guide · PS5</small></div>
+  <div class="brand" title="Leonida 55: GTA VI PS5 trophy guide"><span class="brand-mark" aria-hidden="true"></span><b>Leonida 55</b></div>
   <nav id="view-tabs" aria-label="Views">
-    <a href="?view=checklist" data-view="checklist">Checklist</a>
+    <a href="?view=tracker" data-view="tracker">Tracker</a>
     <a href="?view=roadmap" data-view="roadmap">Roadmap</a>
     <a href="?view=missables" data-view="missables">Missables</a>
     <a href="?view=sources" data-view="sources">Sources</a>
   </nav>
+  <section id="progress-summary" aria-label="Progress"></section>
   <div class="bar-actions">
-    <label id="spoiler-setting" class="switch"><input id="spoiler-toggle" type="checkbox" checked><span>Spoilers hidden</span></label>
-    <button id="export-button" type="button" title="Download your progress as a .json file">⭳ Export .json</button>
-    <label id="import-button" class="button" title="Load a progress .json file (checked against the official list)">⭱ Import .json<input id="import-file" type="file" accept=".json,application/json"></label>
+    <label id="spoiler-setting" class="switch" title="Hide story trophies' names, descriptions and guides until earned"><input id="spoiler-toggle" type="checkbox" checked><span>Spoiler shield on</span></label>
+    <button id="export-button" type="button" title="Download your progress as a .json file">⭳ Export</button>
+    <label id="import-button" class="button" title="Load a progress .json file (checked against the official list)">⭱ Import<input id="import-file" type="file" accept=".json,application/json"></label>
   </div>
 </header>
 <p id="audit-strip" aria-label="Data audit, computed at run time">Checking data…</p>
-<section id="progress-summary" aria-label="Progress"></section>
 <main id="app">
-  <section id="checklist-view" class="view three-pane">
+  <section id="tracker" class="view three-pane">
     <aside id="list-pane">
       <div id="filters"></div>
-      <ol id="trophy-list" aria-label="Trophies"></ol>
+      <ol id="trophy-list" aria-label="Trophies in roadmap order"></ol>
+      <p id="list-foot" aria-live="polite"></p>
     </aside>
     <article id="guide-panel" aria-live="polite"></article>
-    <aside id="sources-panel"></aside>
+    <aside id="side-panel"></aside>
   </section>
   <section id="roadmap" class="view" hidden></section>
   <section id="missables" class="view" hidden></section>

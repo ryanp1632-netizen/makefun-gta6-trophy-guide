@@ -19,11 +19,14 @@ export async function until(fn, ms = 15000) {
   }
 }
 
-export async function startBrowser({ port = 8137, debugPort = 9337 } = {}) {
+// The viewport is 1024x640 CSS pixels at device scale 1.25: a 1280x800 capture whose text reads 25% larger.
+export const VIEWPORT = { width: 1024, height: 640, scale: 1.25 };
+
+export async function startBrowser({ port = 8137, debugPort = 9337, viewport = VIEWPORT } = {}) {
   const server = spawn(process.execPath, ['serve.ts', '--port', String(port)], { cwd: root, stdio: 'ignore' });
   const profile = mkdtempSync(join(tmpdir(), 'leonida55-chrome-'));
   const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`,
-    '--no-first-run', '--no-default-browser-check', '--hide-scrollbars', '--force-device-scale-factor=1', 'about:blank'], { stdio: 'ignore' });
+    '--no-first-run', '--no-default-browser-check', '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
   const close = async () => {
     chrome.kill();
     server.kill();
@@ -56,7 +59,7 @@ export async function startBrowser({ port = 8137, debugPort = 9337 } = {}) {
     await send('Page.enable');
     await send('Runtime.enable');
     await send('Network.enable');
-    await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+    await send('Emulation.setDeviceMetricsOverride', { width: viewport.width, height: viewport.height, deviceScaleFactor: viewport.scale, mobile: false });
     const evaluate = async (expression) => {
       const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
       if (r.exceptionDetails) throw new Error(`evaluate failed: ${r.exceptionDetails.exception?.description ?? expression}`);
@@ -68,7 +71,7 @@ export async function startBrowser({ port = 8137, debugPort = 9337 } = {}) {
       await until(() => evaluate('document.documentElement.dataset.ready === "true"'));
       await wait(250);
     };
-    return { send, evaluate, open, problems, close: async () => { ws.close(); await close(); } };
+    return { send, evaluate, open, problems, viewport, close: async () => { ws.close(); await close(); } };
   } catch (error) {
     await close();
     throw error;

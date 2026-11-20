@@ -8,16 +8,17 @@ import { createFilterState, renderFilterControls } from './filters.js';
 import { applySpoilerSetting } from './spoilers.js';
 import { renderAuditStrip } from './audit.js';
 import { renderProgressSummary } from './progress-summary.js';
-import { renderTrophyList } from './checklist-view.js';
+import { renderTrophyList } from './trophy-list.js';
 import { renderGuidePanel } from './guide-panel.js';
-import { renderSourcesPanel } from './sources-panel.js';
+import { renderSidePanel } from './sources-panel.js';
 
 const VIEWS = {
-  checklist: { el: 'checklist-view' },
-  roadmap: { el: 'roadmap', load: () => import('./roadmap-view.js').then((m) => m.renderRoadmapStages) },
+  tracker: { el: 'tracker' },
+  roadmap: { el: 'roadmap', load: () => import('./roadmap-view.js').then((m) => m.renderRoadmapView) },
   missables: { el: 'missables', load: () => import('./missables-view.js').then((m) => m.renderMissablesView) },
   sources: { el: 'sources-view', load: () => import('./sources-view.js').then((m) => m.renderSourceMatrix) },
 };
+const viewFrom = (params) => (VIEWS[params.get('view')] ? params.get('view') : 'tracker');
 
 async function startApp() {
   const params = new URLSearchParams(location.search);
@@ -29,8 +30,8 @@ async function startApp() {
     store,
     filters: createFilterState(params),
     state: {
-      view: VIEWS[params.get('view')] ? params.get('view') : 'checklist',
-      selectedId: data.byId.has(Number(params.get('trophy'))) ? Number(params.get('trophy')) : 28,
+      view: viewFrom(params),
+      selectedId: data.byId.has(Number(params.get('trophy'))) ? Number(params.get('trophy')) : data.ordered[0].id,
       highlightedSource: null,
     },
   };
@@ -46,14 +47,14 @@ async function startApp() {
   };
   ctx.highlightSource = (id) => {
     ctx.state.highlightedSource = id;
-    renderSourcesPanel(byId('sources-panel'), ctx);
+    renderSidePanel(byId('side-panel'), ctx);
     document.querySelector(`[data-source="${id}"]`)?.scrollIntoView({ block: 'nearest' });
   };
   wireTopBar(ctx);
   store.onChange(() => renderCurrentView(ctx));
   renderAuditStrip(byId('audit-strip'), data);
   await renderCurrentView(ctx);
-  scrollSelectedIntoView();
+  if (!params.has('top')) scrollSelectedIntoView();
   document.documentElement.dataset.ready = 'true';
 }
 
@@ -64,11 +65,11 @@ async function renderCurrentView(ctx) {
   document.querySelectorAll('#view-tabs a').forEach((a) => a.classList.toggle('on', a.dataset.view === view));
   byId('spoiler-toggle').checked = ctx.store.get().settings.spoilers;
   renderProgressSummary(byId('progress-summary'), ctx.data, ctx.store);
-  if (view === 'checklist') {
+  if (view === 'tracker') {
     renderFilterControls(byId('filters'), ctx);
     renderTrophyList(byId('trophy-list'), ctx);
     renderGuidePanel(byId('guide-panel'), ctx);
-    renderSourcesPanel(byId('sources-panel'), ctx);
+    renderSidePanel(byId('side-panel'), ctx);
   } else {
     const render = await VIEWS[view].load();
     render(byId(VIEWS[view].el), ctx);
@@ -98,7 +99,7 @@ function wireTopBar(ctx) {
   }));
   window.addEventListener('popstate', () => {
     const params = new URLSearchParams(location.search);
-    ctx.state.view = VIEWS[params.get('view')] ? params.get('view') : 'checklist';
+    ctx.state.view = viewFrom(params);
     if (ctx.data.byId.has(Number(params.get('trophy')))) ctx.state.selectedId = Number(params.get('trophy'));
     renderCurrentView(ctx);
   });
@@ -112,7 +113,7 @@ function syncUrl(ctx) {
 }
 
 function scrollSelectedIntoView() {
-  document.querySelector('.trophy-row.selected')?.scrollIntoView({ block: 'center' });
+  document.querySelector('.trophy-row.selected')?.scrollIntoView({ block: 'nearest' });
 }
 
 startApp().catch((error) => {

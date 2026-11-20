@@ -3,7 +3,7 @@
 const STORAGE_KEY = 'leonida55.progress.v1';
 
 export const DEMO_PROGRESS = {
-  earned: [2, 3, 4, 8, 16, 20, 21, 33, 35, 36, 42, 54, 55],
+  earned: [2, 20, 16, 21, 35, 36, 42, 54, 55, 33, 47],
   counters: { 15: 142, 17: 19, 25: 3, 28: 9, 30: 1, 31: 64, 32: 22, 48: 310, 52: 120000, 53: 64000 },
 };
 

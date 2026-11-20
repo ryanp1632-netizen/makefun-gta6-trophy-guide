@@ -1,9 +1,13 @@
-// Filter state (kind, grade, earned status, search) and the controls that set it.
+// Filter state (kind, missable, PSN-hidden, disputed, grade, earned status, search) and the chips that set it, each
+// chip showing how many trophies it would list.
 import { h } from './dom.js';
 import { GRADES, KINDS } from './data.js';
 import { isSpoilerHidden } from './spoilers.js';
 
-export const KIND_CHIPS = ['all', 'story', 'missable', 'collectible', 'activity', 'side', 'crime', 'world', 'online'];
+// The bounty's kinds: story, missable, collectibles, activities (side quests, crime and free roam included), online.
+export const KIND_CHIPS = ['all', 'story', 'missable', 'collectible', 'activity', 'online', 'psn-hidden', 'disputed'];
+const ACTIVITY_KINDS = ['activity', 'side', 'crime', 'world'];
+const CHIP_LABELS = { all: 'All', missable: 'Missable', 'psn-hidden': 'PSN-hidden', disputed: 'Disputed' };
 
 export function createFilterState(params) {
   return {
@@ -16,7 +20,10 @@ export function createFilterState(params) {
 
 export function matchesKind(trophy, kind) {
   if (kind === 'all') return true;
-  if (kind === 'missable') return Boolean(trophy.missableLevel);
+  if (kind === 'missable') return Boolean(trophy.missable);
+  if (kind === 'psn-hidden') return trophy.hidden;
+  if (kind === 'disputed') return trophy.disputes.length > 0;
+  if (kind === 'activity') return trophy.kinds.some((k) => ACTIVITY_KINDS.includes(k));
   return trophy.kinds.includes(kind);
 }
 
@@ -28,37 +35,41 @@ export function matchesFilters(trophy, filters, store) {
   if (filters.status === 'todo' && earned) return false;
   const q = filters.query.trim().toLowerCase();
   if (!q) return true;
-  const masked = isSpoilerHidden(trophy, store);
-  const text = masked ? trophy.summary : `${trophy.name} ${trophy.description} ${trophy.summary}`;
+  const text = isSpoilerHidden(trophy, store) ? trophy.summary : `${trophy.name} ${trophy.description} ${trophy.summary}`;
   return text.toLowerCase().includes(q) || String(trophy.id) === q;
 }
 
 export function renderFilterControls(root, ctx) {
   const { filters, data, store } = ctx;
-  const chip = (group, value, label, count) => h('button', {
+  const chip = (group, value, label, count, extra = '') => h('button', {
     type: 'button',
-    class: `chip${filters[group] === value ? ' on' : ''}${value === 'missable' ? ' chip-warn' : ''}`,
+    class: `chip${filters[group] === value ? ' on' : ''}${extra}`,
     'aria-pressed': String(filters[group] === value),
-    onclick: () => { filters[group] = group === 'status' && filters.status === value ? 'all' : value; ctx.refresh(); },
+    onclick: () => {
+      filters[group] = (group === 'status' || group === 'grade') && filters[group] === value ? 'all' : value;
+      ctx.refresh();
+    },
   }, label, count == null ? null : h('b', null, count));
-
-  const kindLabel = (k) => (k === 'all' ? 'All' : k === 'missable' ? 'Missable' : KINDS[k]);
+  const earnedCount = data.trophies.filter((t) => store.isEarned(t.id)).length;
   const search = h('input', {
-    id: 'search-box', type: 'search', placeholder: 'Search trophies…', value: filters.query,
+    id: 'search-box', type: 'search', placeholder: 'Search name, description, guide…', value: filters.query,
+    'aria-label': 'Search trophies',
     oninput: (e) => { filters.query = e.target.value; ctx.refreshList(); },
   });
-  const earnedCount = data.trophies.filter((t) => store.isEarned(t.id)).length;
-  const gradeCount = (g) => data.trophies.filter((t) => t.grade === g).length;
+  const gradeLabel = (g) => {
+    const all = data.trophies.filter((t) => t.grade === g);
+    return `${all.filter((t) => store.isEarned(t.id)).length}/${all.length}`;
+  };
   root.replaceChildren(
-    h('div', { class: 'chip-row' },
-      search,
-      h('span', { class: 'chip-group', role: 'group', 'aria-label': 'Grade' },
-        chip('grade', 'all', 'Any'),
-        Object.entries(GRADES).map(([g, info]) => chip('grade', g, h('i', { class: `medal ${g}`, title: info.label }, info.letter), gradeCount(g))))),
     h('div', { class: 'chip-row', role: 'group', 'aria-label': 'Kind and status' },
-      KIND_CHIPS.map((k) => chip('kind', k, kindLabel(k), data.trophies.filter((t) => matchesKind(t, k)).length)),
-      h('span', { class: 'chip-group status', role: 'group', 'aria-label': 'Status (press again to clear)' },
-        chip('status', 'todo', 'To do', data.trophies.length - earnedCount),
-        chip('status', 'earned', 'Earned', earnedCount))),
+      KIND_CHIPS.map((k) => chip('kind', k, CHIP_LABELS[k] ?? KINDS[k], data.trophies.filter((t) => matchesKind(t, k)).length,
+        k === 'missable' ? ' chip-warn' : k === 'disputed' ? ' chip-dispute' : '')),
+      chip('status', 'todo', 'Not earned', data.trophies.length - earnedCount),
+      chip('status', 'earned', 'Earned', earnedCount)),
+    h('div', { class: 'chip-row search-row' },
+      h('span', { class: 'chip-group', role: 'group', 'aria-label': 'Grade, earned of total (press again to clear)' },
+        Object.entries(GRADES).map(([g, info]) => chip('grade', g,
+          h('i', { class: `medal ${g}`, title: info.label }, info.letter), gradeLabel(g), ' grade-chip'))),
+      search),
   );
 }

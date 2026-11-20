@@ -1,68 +1,72 @@
-// The roadmap to the platinum: six ordered stages, the story's chapters with their key missions, and every trophy
-// placed by its stage and chapter, with its earned state. Loaded on demand by import().
+// The roadmap to the platinum, left to right: stage 1 is the story, one column per chapter (lead, key missions, the
+// trophies to earn there and the point of no return to beat), then stages 2-6, each with its cited note, earned/total
+// and trophies. Every trophy appears once, at its roadmap place. Loaded on demand by import().
 import { h } from './dom.js';
 import { displayName } from './spoilers.js';
 import { renderCiteMarks, renderMedal } from './citations.js';
+import { MISSABLE_LEVELS } from './data.js';
 
-const SIDE_COLUMNS = [[2, 6], [3, 4], [5]];
-
-export function renderRoadmapStages(root, ctx) {
+export function renderRoadmapView(root, ctx) {
   const { data, store } = ctx;
-  const inStage = (id) => data.trophies.filter((t) => t.stage === id);
-  const stage = (id) => data.roadmap.stages.find((s) => s.id === id);
-  const story = stage(1);
   const done = data.trophies.filter((t) => store.isEarned(t.id)).length;
+  const groupsOf = (stage) => data.roadmap.groups.filter((g) => g.stage === stage);
   root.replaceChildren(
     h('header', { class: 'view-head' },
       h('h2', null, 'Roadmap to the platinum'),
-      h('p', null, `${data.roadmap.stages.length} stages in play order · ${done}/${data.trophies.length} earned · placed by the chapter, mission, character and count each official description names`)),
-    h('div', { class: 'road-grid' },
-      h('section', { class: 'stage story', id: 'stage-1' },
-        renderStageHead(story, inStage(1), ctx),
-        h('ol', { class: 'chapters' }, data.roadmap.chapters.map((ch) => renderChapterRow(ch, ctx)))),
-      SIDE_COLUMNS.map((ids) => h('div', { class: 'road-col' },
-        ids.map((id) => renderStageCard(stage(id), inStage(id), ctx))))),
+      h('p', null, `${data.roadmap.stages.length} stages, ${data.roadmap.groups.length} steps in play order · ${done}/${data.trophies.length} earned · placed by the chapter or mission each official description names`)),
+    h('section', { class: 'road-story' },
+      renderStageBand(data.roadmap.stages[0], groupsOf(1), ctx),
+      h('ol', { class: 'chapter-cols' }, groupsOf(1).map((g) => renderChapterColumn(g, ctx)))),
+    h('ol', { class: 'stage-cols' }, data.roadmap.stages.slice(1).map((s) => renderStageColumn(s, groupsOf(s.id), ctx))),
   );
 }
 
-function renderStageHead(stage, trophies, ctx) {
-  const earned = trophies.filter((t) => ctx.store.isEarned(t.id)).length;
-  return h('header', { class: 'stage-head' },
+function trophiesIn(groups, ctx) {
+  const ids = new Set(groups.map((g) => g.id));
+  return ctx.data.ordered.filter((t) => ids.has(t.group));
+}
+
+function renderProgress(list, ctx) {
+  const earned = list.filter((t) => ctx.store.isEarned(t.id)).length;
+  return h('span', { class: `stage-progress${earned === list.length ? ' done' : ''}` }, `${earned}/${list.length}`,
+    h('i', { class: 'mini-bar' }, h('b', { style: `width:${Math.round((earned / list.length) * 100)}%` })));
+}
+
+function renderStageBand(stage, groups, ctx) {
+  return h('header', { class: 'stage-band' },
     h('span', { class: 'stage-num' }, stage.id),
-    h('div', null,
+    h('h3', null, stage.title, h('small', null, stage.hours)),
+    h('p', null, stage.text, ' ', renderCiteMarks(stage.cite, ctx)),
+    renderProgress(trophiesIn(groups, ctx), ctx));
+}
+
+function renderChapterColumn(group, ctx) {
+  const here = trophiesIn([group], ctx);
+  return h('li', { class: 'chapter-col' },
+    h('header', null, h('h4', null, group.short, h('small', null, group.lead)), renderProgress(here, ctx)),
+    h('p', { class: 'missions' }, group.missions.join(' › '), ' ', renderCiteMarks(group.missionCite, ctx)),
+    h('ul', { class: 'road-trophies' }, here.map((t) => renderRoadTrophy(t, ctx))),
+    group.ponr && h('p', { class: 'chapter-warn' }, h('b', null, 'No return: '), group.ponr.text, ' ', renderCiteMarks(group.ponr.cite, ctx)));
+}
+
+function renderStageColumn(stage, groups, ctx) {
+  const list = trophiesIn(groups, ctx);
+  return h('li', { class: 'stage-col' },
+    h('header', null,
+      h('span', { class: 'stage-num' }, stage.id),
       h('h3', null, stage.title),
-      h('p', null, h('b', null, stage.hours), ' · ', stage.text, ' ', renderCiteMarks(stage.cite, ctx))),
-    h('span', { class: `stage-progress${earned === trophies.length ? ' done' : ''}` }, `${earned}/${trophies.length}`));
-}
-
-function renderStageCard(stage, trophies, ctx) {
-  return h('section', { class: 'stage', id: `stage-${stage.id}` },
-    renderStageHead(stage, trophies, ctx),
-    h('ul', { class: 'road-trophies' }, trophies.map((t) => renderRoadTrophy(t, ctx))));
-}
-
-function renderChapterRow(chapter, ctx) {
-  const here = ctx.data.trophies.filter((t) => (chapter.ns ?? [chapter.n]).includes(t.chapter));
-  const story = here.filter((t) => t.stage === 1);
-  const opens = here.filter((t) => t.stage !== 1);
-  return h('li', { class: 'chapter' },
-    h('h4', null, chapter.title, h('small', null, chapter.lead)),
-    h('div', null,
-      h('p', { class: 'missions' }, chapter.missions.join(' → '), ' ', renderCiteMarks(chapter.cite, ctx)),
-      story.length > 0 && h('ul', { class: 'road-trophies inline' }, story.map((t) => renderRoadTrophy(t, ctx))),
-      opens.length > 0 && h('p', { class: 'starts' }, h('b', null, 'Opens: '),
-        opens.map((t, i) => [i ? ' · ' : '', h('a', {
-          href: `?trophy=${t.id}`,
-          onclick: (e) => { e.preventDefault(); ctx.selectTrophy(t.id, 'checklist'); },
-        }, displayName(t, ctx.store))])),
-      chapter.warn && h('p', { class: 'chapter-warn' }, '⚠ ', chapter.warn, ' ', renderCiteMarks(chapter.warnCite, ctx))));
+      renderProgress(list, ctx)),
+    h('p', { class: 'stage-note' }, h('b', null, stage.hours), ' · ', stage.text, ' ', renderCiteMarks(stage.cite, ctx)),
+    h('ul', { class: 'road-trophies' }, list.map((t) => renderRoadTrophy(t, ctx))));
 }
 
 function renderRoadTrophy(trophy, ctx) {
   const earned = ctx.store.isEarned(trophy.id);
-  return h('li', { class: earned ? 'earned' : '', onclick: () => ctx.selectTrophy(trophy.id, 'checklist') },
+  const level = trophy.missable?.level;
+  return h('li', { class: earned ? 'earned' : '', onclick: () => ctx.selectTrophy(trophy.id, 'tracker') },
     h('span', { class: 'tick', 'aria-label': earned ? 'earned' : 'not earned' }, earned ? '✓' : ''),
     renderMedal(trophy.grade),
-    h('span', { class: 'road-name' }, displayName(trophy, ctx.store),
-      trophy.missableLevel && h('em', { class: `badge ${trophy.missableLevel}` }, trophy.missableLevel === 'missable' ? 'Missable' : 'Watch')));
+    h('span', { class: 'road-name' }, displayName(trophy, ctx.store)),
+    level && h('em', { class: `badge ${level}` }, MISSABLE_LEVELS[level].short),
+  );
 }

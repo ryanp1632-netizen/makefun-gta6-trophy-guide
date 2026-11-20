@@ -1,14 +1,10 @@
-// A working gta6-trophy-guide-01 entry (Node 22, standard library only): the guide is this directory's app/ folder,
-// plain static files a browser opens at app/index.html (ES modules, CSS, no build step), offline: it loads nothing
-// over the network, and its trophy list and guides are app/data/trophies.json. The program hands it in: it copies app/
-// and screenshots/ from beside this file to /output and writes /output/dossier.json, the summary the judge reads (your
-// screenshots, the first load's files and bytes, and your source), with the vendored make.fun library. Leave
-// vendor/makefun-frontend.ts as it is: the scorer requires dossier.json to be byte for byte what its own copy writes.
-//
-// Only the plumbing, not a winner: a plain checklist of the 55 trophies with a one-line hint each. Write a real guide
-// for every trophy in your own words, a roadmap to the platinum, filters and a spoiler setting in app/, put 3 or 4 PNG
-// or JPEG screenshots of it in screenshots/ (the first by name is the cover; shots.json says which views this
-// starter's were taken of), and run it.
+// Leonida 55's hand-in program (Node 22, standard library only). The guide is this directory's app/ folder, plain
+// static files a browser opens at app/index.html (ES modules, CSS, no build step), offline: it loads nothing over the
+// network, and its trophy list and guides are app/data/trophies.json, its pages app/data/sources.tsv, its roadmap
+// app/data/roadmap.json. This program checks the data, the screenshots and the offline references, then copies app/
+// and screenshots/ from beside this file to /output and writes /output/dossier.json, the summary the judge reads, with
+// the vendored make.fun library. vendor/makefun-frontend.ts stays as the kit shipped it: the scorer requires
+// dossier.json to be byte for byte what its own copy writes.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
@@ -22,29 +18,86 @@ import { buildDossier } from './vendor/makefun-frontend.ts';
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-// Refuse to hand in a guide whose trophy file would fail the gate: the 55 official names (the kit starter's list,
-// kept untouched in tools/official-list.json), each named once with a non-blank guide, grades 1/2/6/46, and every
-// citation pointing at a source in app/data/sources.json.
+type Cited = { text: string; cite: string[] };
+type Trophy = {
+  id: number; name: string; description: string; grade: string; guide: string; cites?: string[][];
+  missable?: { level: string; why: string; ponr: string; cite: string[] };
+  disputes?: { topic: string; a: Cited; b: Cited; call: string }[];
+};
+type Page = { id: string; site: string; title: string; url: string; read: string };
+
+// The page table: tab-separated, header line first, one cited page a line ([n] in a guide is its line number).
+function readSourceTable(): Page[] {
+  const [head, ...rows] = readFileSync(join(here, 'app/data/sources.tsv'), 'utf8').trim().split('\n').map((line) => line.split('\t'));
+  return rows.map((cells) => Object.fromEntries(head.map((key, i) => [key, cells[i] ?? ''])) as Page);
+}
+
+// Refuse to hand in a guide whose trophy file would fail the gate or show an uncited claim: the 55 official names
+// (the kit starter's list, kept untouched in tools/official-list.json), each named once with its official description
+// and grade and a non-blank guide, grades 1/2/6/46; every guide line ("In short", then one numbered step a line)
+// matched by a non-empty list of page ids in "cites", its [n] marks pointing at those very pages; every missable
+// window and both sides of every dispute cited; every cited page in the page table and every page cited somewhere;
+// every trophy placed once in the roadmap.
 function validateTrophyData(): string {
   const read = (path: string) => JSON.parse(readFileSync(join(here, path), 'utf8'));
-  const trophies: { name: string; grade: string; guide: string; steps?: { cite: string[] }[] }[] = read('app/data/trophies.json').trophies;
+  const trophies: Trophy[] = read('app/data/trophies.json').trophies;
   // Without tools/ (a partial checkout) the guide's own list stands in, so the count, grade and guide checks still run.
-  const official: { name: string; grade: string }[] = existsSync(join(here, 'tools/official-list.json')) ? read('tools/official-list.json').trophies : trophies;
-  const sourceIds = new Set<string>(read('app/data/sources.json').sources.map((s: { id: string }) => s.id));
+  const official: Trophy[] = existsSync(join(here, 'tools/official-list.json')) ? read('tools/official-list.json').trophies : trophies;
+  const pages = readSourceTable();
+  const pageNumber = new Map(pages.map((p, i) => [p.id, i + 1]));
+  const roadmap: { groups: { id: string; trophies: number[] }[] } = read('app/data/roadmap.json');
   const problems: string[] = [];
   for (const o of official) {
     const item = trophies.find((t) => t.name === o.name);
     if (!item) problems.push(`missing trophy: ${o.name}`);
     else if (typeof item.guide !== 'string' || !item.guide.trim()) problems.push(`no guide: ${o.name}`);
-    else if (item.grade !== o.grade) problems.push(`grade changed: ${o.name}`);
+    else if (item.grade !== o.grade || item.description !== o.description) problems.push(`official grade or description changed: ${o.name}`);
   }
   const grades = ['platinum', 'gold', 'silver', 'bronze'].map((g) => trophies.filter((t) => t.grade === g).length).join('/');
   if (official.length !== 55 || trophies.length !== 55 || grades !== '1/2/6/46') problems.push(`expected 55 trophies 1/2/6/46, got ${trophies.length} ${grades}`);
-  for (const t of trophies) for (const s of t.steps ?? []) {
-    if (!s.cite.length || s.cite.some((id) => !sourceIds.has(id))) problems.push(`uncited or unknown source in a step of ${t.name}`);
+  const used = new Set<string>();
+  const cited = (ids: string[] | undefined, where: string) => {
+    if (!ids?.length) problems.push(`${where}: no citation`);
+    for (const id of ids ?? []) {
+      used.add(id);
+      if (!pageNumber.has(id)) problems.push(`${where}: unknown page "${id}"`);
+    }
+  };
+  let steps = 0;
+  let disputes = 0;
+  for (const t of trophies) {
+    const lines = (t.guide ?? '').split('\n');
+    const cites = t.cites ?? [];
+    if (!lines[0]?.startsWith('In short: ') || lines.length !== cites.length + 1 || !cites.length) problems.push(`#${t.id}: guide lines and citations out of step`);
+    cites.forEach((ids, i) => {
+      steps += 1;
+      const where = `#${t.id} step ${i + 1}`;
+      cited(ids, where);
+      const marks = ids.map((id) => `[${pageNumber.get(id)}]`).join('');
+      const line = lines[i + 1] ?? '';
+      if (!line.startsWith(`${i + 1}. `) || !line.endsWith(` ${marks}`) || line.length <= marks.length + 6) problems.push(`${where}: text or [n] marks do not match its citations`);
+    });
+    if (t.missable) {
+      if (!['missable', 'possible', 'risk'].includes(t.missable.level) || !t.missable.why || !t.missable.ponr) problems.push(`#${t.id}: incomplete missable window`);
+      cited(t.missable.cite, `#${t.id} missable window`);
+    }
+    for (const [i, d] of (t.disputes ?? []).entries()) {
+      disputes += 1;
+      if (!d.topic || !d.call || !d.a?.text || !d.b?.text) problems.push(`#${t.id} dispute ${i + 1}: needs topic, both sides and our call`);
+      cited(d.a?.cite, `#${t.id} dispute ${i + 1} side A`);
+      cited(d.b?.cite, `#${t.id} dispute ${i + 1} side B`);
+    }
   }
-  if (problems.length) throw new Error(`trophy data refused:\n  ${problems.slice(0, 10).join('\n  ')}`);
-  return `55/55 official trophies with guides (${grades}), ${sourceIds.size} sources`;
+  for (const p of pages) {
+    if (!/^https:\/\//.test(p.url) || !p.site || !p.title || !/^\d{4}-\d{2}-\d{2}$/.test(p.read)) problems.push(`page ${p.id}: needs a site, a title, an https link and the date read`);
+    if (!used.has(p.id)) problems.push(`page ${p.id}: listed but never cited`);
+  }
+  if (new Set(pages.map((p) => p.url)).size !== pages.length) problems.push('a page is listed twice');
+  const placed = roadmap.groups.flatMap((g) => g.trophies);
+  if (placed.length !== 55 || new Set(placed).size !== 55 || trophies.some((t) => !placed.includes(t.id))) problems.push('roadmap must place each trophy exactly once');
+  if (problems.length) throw new Error(`trophy data refused:\n  ${problems.slice(0, 12).join('\n  ')}`);
+  const sites = new Set(pages.map((p) => p.site)).size;
+  return `55/55 official trophies with guides (${grades}), ${steps} cited steps, ${disputes} disputes with both sides cited, ${pages.length} pages from ${sites} sites`;
 }
 
 // The gate's screenshot rule: 3 or 4 PNG or JPEG files, plain names, at most 256 KiB each, long side at most 1280
@@ -83,7 +136,8 @@ function validateScreenshots(): string {
 }
 
 // A last guard against loading anything over the network: no src/href/import/url() in app/'s pages, scripts or
-// stylesheets may name an absolute or protocol-relative URL. Plain <a href> links to sources are allowed.
+// stylesheets may name an absolute or protocol-relative URL, and no fetch() may name one either. Plain <a href> links
+// to sources are allowed.
 function validateOfflineReferences(): string {
   const problems: string[] = [];
   const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true })
@@ -95,6 +149,7 @@ function validateOfflineReferences(): string {
       ...text.matchAll(/<(?:script|link|img|iframe|source|video|audio|embed)\b[^>]*\b(?:src|href)\s*=\s*["']?((?:[a-z]+:)?\/\/[^"'\s>]+)/gi),
       ...text.matchAll(/\bimport\s*(?:\(|[^'"]*from\s*)\s*['"`]((?:[a-z]+:)?\/\/[^'"`]+)/gi),
       ...text.matchAll(/(?:@import|url\()\s*['"]?((?:[a-z]+:)?\/\/[^'")\s]+)/gi),
+      ...text.matchAll(/\bfetch\(\s*['"`]((?:[a-z]+:)?\/\/[^'"`]+)/gi),
     ];
     for (const m of loads) problems.push(`${file.slice(here.length)} loads ${m[1]}`);
   }
