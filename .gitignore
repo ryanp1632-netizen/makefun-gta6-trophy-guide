@@ -1,6 +1,34 @@
-node_modules/
-.env
+# Hand-in output (MAKEFUN_OUTPUT_DIR=out|out1|out2 node main.ts): rebuilt on demand, never committed
 out/
 out1/
 out2/
+/output/
+
+# Dependencies (the app and tools use none, but keep any local installs out)
+node_modules/
+
+# Secrets and local settings
+.env
+.env.*
+.makefun/
+
+# Logs and test leftovers
 *.log
+npm-debug.log*
+*.tmp
+.cache/
+
+# OS junk
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editor and IDE folders
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

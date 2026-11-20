@@ -1,7 +1,7 @@
 // Drives the real app in headless Chrome and checks the tracker works: roadmap-ordered grouped list, saving and
 // reloading progress and counters, the spoiler shield and per-trophy reveal, kind/missable/PSN-hidden/disputed/grade/
 // status filters and search, the guide's official box, missable window, disputes and cited steps, the source cards,
-// export-file validation on import, every view rendering, and no request leaving app/. Usage: node tools/smoke-test.mjs
+// export-file validation on import (shape, version, unknown ids skipped, counters in range, summary, undo), every view rendering, and no request leaving app/. Usage: node tools/smoke-test.mjs
 import { startBrowser } from './cdp.mjs';
 
 const results = [];
@@ -72,14 +72,64 @@ try {
     const { validateProgressPayload } = await import('./js/export-import.js');
     const { loadGuideData } = await import('./js/data.js');
     const data = await loadGuideData();
-    const good = validateProgressPayload({ format: 'leonida55-progress', earned: [{ id: 1, name: 'Vice Got a Price!' }, 2], counters: { 28: 5 } }, data);
-    const badName = validateProgressPayload({ format: 'leonida55-progress', earned: [{ id: 1, name: 'Nope' }] }, data);
-    const badId = validateProgressPayload({ format: 'leonida55-progress', earned: [99] }, data);
+    const good = validateProgressPayload({ format: 'leonida55-progress', version: 1, earned: [{ id: 1, name: 'Vice Got a Price!' }, 2], counters: { 28: 5 } }, data);
+    const badName = validateProgressPayload({ format: 'leonida55-progress', version: 1, earned: [{ id: 1, name: 'Nope' }] }, data);
+    const badId = validateProgressPayload({ format: 'leonida55-progress', version: 1, earned: [99] }, data);
     const badFormat = validateProgressPayload({ earned: [1] }, data);
-    const badCounter = validateProgressPayload({ format: 'leonida55-progress', earned: [], counters: { 2: 5 } }, data);
+    const badCounter = validateProgressPayload({ format: 'leonida55-progress', version: 1, earned: [], counters: { 2: 5 } }, data);
     return [good.ok, badName.ok, badId.ok, badFormat.ok, badCounter.ok];
   })()`);
   check('import validation accepts a good file and refuses bad ones', JSON.stringify(validation) === '[true,false,false,false,false]', JSON.stringify(validation));
+
+  const strict = await b.evaluate(`(async () => {
+    const { validateProgressPayload } = await import('./js/export-import.js');
+    const { loadGuideData } = await import('./js/data.js');
+    const data = await loadGuideData();
+    const base = { format: 'leonida55-progress', version: 1 };
+    const v = (extra) => validateProgressPayload({ ...base, ...extra }, data);
+    const mixed = v({ earned: [1, 99, { id: 3, name: 'Wrong' }, 2, 2], counters: { 28: 5, 17: 43, 2: 1, 31: 1.5 }, revealed: [4, 77] });
+    return {
+      newerVersion: v({ version: 2, earned: [1] }).ok,
+      noVersion: validateProgressPayload({ format: 'leonida55-progress', earned: [1] }, data).ok,
+      otherList: v({ totals: { trophies: 60 }, earned: [1] }).ok,
+      badShape: v({ earned: [1], counters: [5] }).ok || v({ earned: [1], revealed: 4 }).ok,
+      onlyBadCounter: v({ earned: [], counters: { 28: 99 } }).ok,
+      mixedOk: mixed.ok,
+      earned: mixed.progress?.earned, counters: mixed.progress?.counters, revealed: mixed.progress?.revealed,
+      summary: mixed.summary,
+      bareNames: validateProgressPayload(['Vice Got a Price!', 'Trust'], data).progress?.earned,
+    };
+  })()`);
+  check('import refuses a newer version, a missing version, another list and a bad shape',
+    !strict.newerVersion && !strict.noVersion && !strict.otherList && !strict.badShape && !strict.onlyBadCounter, JSON.stringify(strict).slice(0, 120));
+  check('import skips unknown ids, mismatched names and out-of-range counters, keeps the rest',
+    JSON.stringify([strict.earned, strict.counters, strict.revealed]) === '[[1,2],{"28":5},[4]]', JSON.stringify([strict.earned, strict.counters, strict.revealed]));
+  check('import summary counts what applies and names what it skipped',
+    strict.summary.startsWith('2 earned, 1 counters, 1 revealed.') && /Unknown ids skipped: 99, 77/.test(strict.summary) && /#3 "Wrong"/.test(strict.summary) && /#2=1, #17=43, #31=1\.5/.test(strict.summary), strict.summary);
+  check('bare list of official names imports', JSON.stringify(strict.bareNames) === '[1,8]', JSON.stringify(strict.bareNames));
+
+  const undo = await b.evaluate(`(async () => {
+    const { buildProgressFile, importProgressFile, undoLastImport, canUndoImport } = await import('./js/export-import.js');
+    const { createProgressStore } = await import('./js/store.js');
+    const { loadGuideData } = await import('./js/data.js');
+    const data = await loadGuideData();
+    const store = createProgressStore({ demo: true });
+    const before = JSON.stringify(store.get().earned);
+    const file = (obj) => new File([JSON.stringify(obj)], 'p.json');
+    let asked = '';
+    const declined = await importProgressFile(file({ format: 'leonida55-progress', version: 1, earned: [7] }), store, data, (s) => { asked = s; return false; });
+    const unchanged = JSON.stringify(store.get().earned) === before;
+    const done = await importProgressFile(file({ format: 'leonida55-progress', version: 1, earned: [7], counters: { 28: 3 } }), store, data);
+    const applied = JSON.stringify(store.get().earned) === '[7]' && store.counter(28) === 3;
+    const undone = canUndoImport() && undoLastImport(store) && JSON.stringify(store.get().earned) === before;
+    const exported = buildProgressFile(store, data);
+    return { asked, declined: declined.cancelled === true, unchanged, done: done.ok, applied, undone, secondUndo: undoLastImport(store),
+      selfDescribing: exported.app === 'Leonida 55' && exported.version === 1 && !Number.isNaN(Date.parse(exported.exportedAt)) && exported.exportedAt.endsWith('Z')
+        && JSON.stringify(exported.totals) === '{"trophies":55,"platinum":1,"gold":2,"silver":6,"bronze":46}' && exported.earnedTotals.trophies === exported.earned.length };
+  })()`);
+  check('import asks first with its summary, and a no changes nothing', undo.declined && undo.unchanged && /^Import 1 earned, 0 counters, 0 revealed\?/.test(undo.asked), undo.asked.split('\n')[0]);
+  check('import applies, and Undo restores the progress it replaced (once)', undo.done && undo.applied && undo.undone && undo.secondUndo === false, JSON.stringify(undo));
+  check('export file names its app, version, ISO time and the 55-trophy totals', undo.selfDescribing);
 
   const roundTrip = await b.evaluate(`(async () => {
     const { buildProgressFile, validateProgressPayload } = await import('./js/export-import.js');

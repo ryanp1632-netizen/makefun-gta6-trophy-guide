@@ -1,5 +1,6 @@
 // Builds app/data/trophies.json, app/data/roadmap.json and app/data/sources.tsv from the official list
-// (tools/official-list.json, the kit starter's file, untouched) and our guides, source pages and roadmap. Fails
+// (tools/official-list.json: the kit starter's names, descriptions and grades untouched, plus each trophy's PSN-hidden
+// flag, the expected totals and the pages it was checked against) and our guides, source pages and roadmap. Fails
 // loudly if anything does not check out: a step without a citation, a citation of a page not in sources.mjs, a
 // dispute without both sides cited, a missable window without a cited point of no return, a page never cited, a
 // trophy missing from the roadmap or placed twice.
@@ -12,14 +13,33 @@ import { STAGES, GROUPS, OTHER_MISSABLES, NOT_MISSABLE, SAVE_PLAN, MISSABLES_INT
 const root = new URL('../', import.meta.url);
 const official = JSON.parse(readFileSync(new URL('tools/official-list.json', root), 'utf8'));
 
-// Hidden on PlayStation until earned, as GTABase and GAMES.GG both list them (28).
-const HIDDEN = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 22, 23, 24, 26, 27, 29, 37, 38, 44, 45, 46, 47, 48, 49, 50, 51]);
 const LEVELS = ['missable', 'possible', 'risk'];
 const TAB = '\t';
 const NL = '\n';
 
 const sourceIndex = new Map(SOURCES.map((s, i) => [s.id, i + 1]));
 const errors = [];
+
+// The official list checks itself first: ids numbered 1-55 in PlayStation order, each name once, every field set,
+// grade and PSN-hidden counts equal to its own "totals" (1/2/6/46, 28 hidden), and its "checked" pages in our table.
+function checkOfficialList(list) {
+  const { totals, trophies: items } = list;
+  if (items.length !== totals.trophies) errors.push(`official list: ${items.length} trophies, totals say ${totals.trophies}`);
+  items.forEach((t, i) => {
+    if (t.id !== i + 1) errors.push(`official list: item ${i + 1} has id ${t.id}, expected ${i + 1}`);
+    if (!t.name || !t.description || typeof t.hidden !== 'boolean') errors.push(`official list #${t.id}: needs name, description and hidden`);
+  });
+  if (new Set(items.map((t) => t.name)).size !== items.length) errors.push('official list: a name appears twice');
+  for (const key of ['platinum', 'gold', 'silver', 'bronze']) {
+    const n = items.filter((t) => t.grade === key).length;
+    if (n !== totals[key]) errors.push(`official list: ${n} ${key}, totals say ${totals[key]}`);
+  }
+  if (items.filter((t) => t.hidden).length !== totals.hidden) errors.push(`official list: hidden count differs from totals (${totals.hidden})`);
+  if (totals.trophies !== 55 || totals.platinum !== 1 || totals.gold !== 2 || totals.silver !== 6 || totals.bronze !== 46) errors.push('official list: totals must be 55 = 1/2/6/46');
+  if (!list.checked?.sources?.length) errors.push('official list: no "checked" sources');
+  for (const id of list.checked?.sources ?? []) if (!sourceIndex.has(id)) errors.push(`official list checked against unknown page "${id}"`);
+}
+checkOfficialList(official);
 const cite = (ids, where) => {
   if (!ids?.length) errors.push(`${where}: no citation`);
   for (const id of ids ?? []) if (!sourceIndex.has(id)) errors.push(`${where}: unknown source "${id}"`);
@@ -66,7 +86,7 @@ const trophies = official.trophies.map((t) => {
       name: t.name,
       description: t.description,
       grade: t.grade,
-      hidden: HIDDEN.has(t.id),
+      hidden: t.hidden,
       kinds: g.k,
       chapter: g.ch ?? null,
       count: g.c ?? null,
@@ -91,7 +111,7 @@ const records = trophies.map((t) => t.record ?? t);
 const grades = records.reduce((m, t) => ({ ...m, [t.grade]: (m[t.grade] ?? 0) + 1 }), {});
 if (records.length !== 55) errors.push(`expected 55 trophies, got ${records.length}`);
 if (grades.platinum !== 1 || grades.gold !== 2 || grades.silver !== 6 || grades.bronze !== 46) errors.push(`grades ${JSON.stringify(grades)}`);
-if (records.filter((t) => t.hidden).length !== 28) errors.push('expected 28 hidden');
+if (records.filter((t) => t.hidden).length !== official.totals.hidden) errors.push(`expected ${official.totals.hidden} hidden`);
 official.trophies.forEach((o, i) => {
   const t = records[i];
   if (t.name !== o.name || t.description !== o.description || t.grade !== o.grade) errors.push(`official fields changed for #${o.id}`);
@@ -126,7 +146,7 @@ out('trophies.json', {
   platform: official.platform,
   list: official.list,
   officialFrom: 'Names, descriptions and grades exactly as the kit\'s starter list (Exophase and PSNProfiles, frozen 2026-11-18).',
-  hiddenFrom: ['gb', 'gg'],
+  hiddenFrom: official.checked.sources,
   readOn: READ_ON,
   trophies: records,
 });

@@ -3,7 +3,7 @@
 import { byId, showToast } from './dom.js';
 import { loadGuideData } from './data.js';
 import { createProgressStore } from './store.js';
-import { exportProgressFile, importProgressFile } from './export-import.js';
+import { exportProgressFile, importProgressFile, undoLastImport } from './export-import.js';
 import { createFilterState, renderFilterControls } from './filters.js';
 import { applySpoilerSetting } from './spoilers.js';
 import { renderAuditStrip } from './audit.js';
@@ -87,8 +87,9 @@ function wireTopBar(ctx) {
   byId('import-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const result = await importProgressFile(file, store, data);
-    showToast(result.ok ? `Imported: ${result.summary}.` : `Import refused: ${result.error}`);
+    const result = await importProgressFile(file, store, data, (summary) => window.confirm(summary));
+    if (result.ok) showToast(`Imported: ${result.summary}. `, { label: 'Undo', run: () => undoLastImport(store) && showToast('Import undone; your earlier progress is back.') });
+    else showToast(result.cancelled ? result.error : `Import refused: ${result.error}`);
     e.target.value = '';
   });
   document.querySelectorAll('#view-tabs a').forEach((a) => a.addEventListener('click', (e) => {

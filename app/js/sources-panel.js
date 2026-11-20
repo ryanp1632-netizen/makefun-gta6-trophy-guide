@@ -2,7 +2,7 @@
 // guide cites: number, site, page title, domain, date read, claims in this guide and how many guides cite it.
 import { h } from './dom.js';
 import { displayName, isSpoilerHidden } from './spoilers.js';
-import { renderMedal } from './citations.js';
+import { renderMedal, plural } from './citations.js';
 import { citationsOf } from './data.js';
 
 export function renderSidePanel(root, ctx) {
@@ -26,7 +26,7 @@ function renderSourceCards(trophy, ctx) {
   const masked = isSpoilerHidden(trophy, ctx.store);
   const sites = ctx.data.sitesOf(trophy.sources).length;
   return h('section', { class: 'source-cards' },
-    h('h2', null, 'Sources for this guide', h('small', null, `${trophy.sources.length} pages · ${sites} sites`)),
+    h('h2', null, 'Sources for this guide', h('small', null, `${plural(trophy.sources.length, 'page')} · ${plural(sites, 'site')}`)),
     masked ? h('p', { class: 'placeholder' }, 'Hidden with the guide.') :
       h('ol', null, [...trophy.sources].sort((a, b) => citesHere(b, trophy) - citesHere(a, trophy)).map((id) => renderSourceCard(id, trophy, ctx))));
 }

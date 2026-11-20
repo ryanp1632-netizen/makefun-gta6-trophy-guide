@@ -1,10 +1,10 @@
 // The guide pane: the selected trophy's name and grade, its official description quoted in a labelled box, badges,
 // earned switch and counter, the missable window and source disputes (guide-notes.js), then "How to earn it": the
 // numbered steps in our own words, each with its [n] citations.
-import { h } from './dom.js';
+import { h, toggleButton } from './dom.js';
 import { GRADES, KINDS, MISSABLE_LEVELS, chapterLabel, formatCount } from './data.js';
 import { displayName, isSpoilerHidden } from './spoilers.js';
-import { renderCiteMarks, renderMedal } from './citations.js';
+import { renderCiteMarks, renderMedal, citedBySites } from './citations.js';
 import { renderMissableWindow, renderDisputes, renderUnconfirmed } from './guide-notes.js';
 
 export function renderGuidePanel(root, ctx) {
@@ -28,7 +28,7 @@ export function renderGuidePanel(root, ctx) {
 function renderEarnedControls(trophy, ctx) {
   const earned = ctx.store.isEarned(trophy.id);
   return h('div', { class: 'earned-controls' },
-    h('button', { type: 'button', class: `earn-button${earned ? ' on' : ''}`, onclick: () => ctx.store.toggleEarned(trophy.id) },
+    toggleButton(earned, { class: 'earn-button', onclick: () => ctx.store.toggleEarned(trophy.id) },
       earned ? '✓ Earned' : 'Mark earned'),
     trophy.count > 1 && renderCounter(trophy, ctx));
 }
@@ -74,7 +74,7 @@ function renderGuideBody(trophy, ctx) {
     h('section', { class: 'how-to' },
       h('h3', null, 'How to earn it', h('small', null, `in our own words · ${cited}/${trophy.steps.length} steps cited · `,
         h('span', { class: 'multi-key' }, `${multi} by 2+ sites`))),
-      h('ol', { class: 'steps' }, trophy.steps.map((s) => h('li', { class: s.sites >= 2 ? 'multi' : '', title: `${s.sites} site${s.sites === 1 ? '' : 's'}` },
+      h('ol', { class: 'steps' }, trophy.steps.map((s) => h('li', { class: s.sites >= 2 ? 'multi' : '', title: `Step ${citedBySites(s.sites)}` },
         s.text, ' ', renderCiteMarks(s.cite, ctx))))),
     renderUnconfirmed(trophy));
 }

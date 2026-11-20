@@ -20,10 +20,11 @@ const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 type Cited = { text: string; cite: string[] };
 type Trophy = {
-  id: number; name: string; description: string; grade: string; guide: string; cites?: string[][];
+  id: number; name: string; description: string; grade: string; guide: string; hidden?: boolean; cites?: string[][];
   missable?: { level: string; why: string; ponr: string; cite: string[] };
   disputes?: { topic: string; a: Cited; b: Cited; call: string }[];
 };
+type Totals = { trophies: number; platinum: number; gold: number; silver: number; bronze: number; hidden: number };
 type Page = { id: string; site: string; title: string; url: string; read: string };
 
 // The page table: tab-separated, header line first, one cited page a line ([n] in a guide is its line number).
@@ -33,8 +34,9 @@ function readSourceTable(): Page[] {
 }
 
 // Refuse to hand in a guide whose trophy file would fail the gate or show an uncited claim: the 55 official names
-// (the kit starter's list, kept untouched in tools/official-list.json), each named once with its official description
-// and grade and a non-blank guide, grades 1/2/6/46; every guide line ("In short", then one numbered step a line)
+// (the kit starter's list, its names, descriptions and grades untouched in tools/official-list.json), each named once
+// with its official description, grade and PSN-hidden flag and a non-blank guide, numbered 1-55, grades and hidden
+// count equal to the list's own totals (1/2/6/46, 28 hidden); every guide line ("In short", then one numbered step a line)
 // matched by a non-empty list of page ids in "cites", its [n] marks pointing at those very pages; every missable
 // window and both sides of every dispute cited; every cited page in the page table and every page cited somewhere;
 // every trophy placed once in the roadmap.
@@ -42,7 +44,9 @@ function validateTrophyData(): string {
   const read = (path: string) => JSON.parse(readFileSync(join(here, path), 'utf8'));
   const trophies: Trophy[] = read('app/data/trophies.json').trophies;
   // Without tools/ (a partial checkout) the guide's own list stands in, so the count, grade and guide checks still run.
-  const official: Trophy[] = existsSync(join(here, 'tools/official-list.json')) ? read('tools/official-list.json').trophies : trophies;
+  const list: { trophies: Trophy[]; totals?: Totals } | null = existsSync(join(here, 'tools/official-list.json')) ? read('tools/official-list.json') : null;
+  const official: Trophy[] = list?.trophies ?? trophies;
+  const totals: Totals = list?.totals ?? { trophies: 55, platinum: 1, gold: 2, silver: 6, bronze: 46, hidden: 28 };
   const pages = readSourceTable();
   const pageNumber = new Map(pages.map((p, i) => [p.id, i + 1]));
   const roadmap: { groups: { id: string; trophies: number[] }[] } = read('app/data/roadmap.json');
@@ -52,9 +56,15 @@ function validateTrophyData(): string {
     if (!item) problems.push(`missing trophy: ${o.name}`);
     else if (typeof item.guide !== 'string' || !item.guide.trim()) problems.push(`no guide: ${o.name}`);
     else if (item.grade !== o.grade || item.description !== o.description) problems.push(`official grade or description changed: ${o.name}`);
+    else if (item.id !== o.id || (o.hidden !== undefined && item.hidden !== o.hidden)) problems.push(`number or PSN-hidden flag differs from the list: ${o.name}`);
   }
   const grades = ['platinum', 'gold', 'silver', 'bronze'].map((g) => trophies.filter((t) => t.grade === g).length).join('/');
-  if (official.length !== 55 || trophies.length !== 55 || grades !== '1/2/6/46') problems.push(`expected 55 trophies 1/2/6/46, got ${trophies.length} ${grades}`);
+  const expected = [totals.platinum, totals.gold, totals.silver, totals.bronze].join('/');
+  if (expected !== '1/2/6/46' || totals.trophies !== 55) problems.push(`official list totals must be 55 = 1/2/6/46, got ${totals.trophies} = ${expected}`);
+  if (official.length !== 55 || trophies.length !== 55 || grades !== expected) problems.push(`expected 55 trophies ${expected}, got ${trophies.length} ${grades}`);
+  if (official.some((o, i) => o.id !== i + 1) || trophies.some((t, i) => t.id !== i + 1)) problems.push('trophies must be numbered 1-55 in list order');
+  const hidden = trophies.filter((t) => t.hidden).length;
+  if (hidden !== totals.hidden) problems.push(`expected ${totals.hidden} PSN-hidden trophies, got ${hidden}`);
   const used = new Set<string>();
   const cited = (ids: string[] | undefined, where: string) => {
     if (!ids?.length) problems.push(`${where}: no citation`);

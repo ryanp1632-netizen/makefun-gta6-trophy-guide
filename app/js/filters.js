@@ -1,6 +1,6 @@
 // Filter state (kind, missable, PSN-hidden, disputed, grade, earned status, search) and the chips that set it, each
 // chip showing how many trophies it would list.
-import { h } from './dom.js';
+import { h, toggleButton } from './dom.js';
 import { GRADES, KINDS } from './data.js';
 import { isSpoilerHidden } from './spoilers.js';
 
@@ -41,10 +41,8 @@ export function matchesFilters(trophy, filters, store) {
 
 export function renderFilterControls(root, ctx) {
   const { filters, data, store } = ctx;
-  const chip = (group, value, label, count, extra = '') => h('button', {
-    type: 'button',
-    class: `chip${filters[group] === value ? ' on' : ''}${extra}`,
-    'aria-pressed': String(filters[group] === value),
+  const chip = (group, value, label, count, extra = '') => toggleButton(filters[group] === value, {
+    class: `chip${extra}`,
     onclick: () => {
       filters[group] = (group === 'status' || group === 'grade') && filters[group] === value ? 'all' : value;
       ctx.refresh();
