@@ -37,7 +37,7 @@ export function renderSourceMatrix(root, ctx) {
   root.replaceChildren(
     h('header', { class: 'view-head' },
       h('h2', null, 'Sources & citation matrix'),
-      h('p', null, `${s.pages} pages from ${s.sites} sites, each fetched and read ${data.readOn}; facts rewritten in our own words. A dot: that guide cites the site (brighter = more claims). Columns in roadmap order.`)),
+      h('p', null, `${s.pages} pages from ${s.sites} sites, each fetched and read ${data.readOn}; facts rewritten in our own words. A dot: that guide cites the site (brighter = more claims).`)),
     h('div', { class: 'totals' },
       total('claims cited', `${s.claimsCited}/${s.claims}`, 'every numbered step'),
       total('backed by 2+ sites', s.claimsMulti, `${Math.round((s.claimsMulti / s.claims) * 100)}% of claims`),
@@ -45,6 +45,9 @@ export function renderSourceMatrix(root, ctx) {
       total('guides cite sources', `${s.guidesCited}/${s.total}`, 'none uncited'),
       total('disputes shown', s.disputes, `in ${s.disputedTrophies} guides, both sides`),
       total('unconfirmed', s.unconfirmed, 'marked, not guessed')),
+    h('p', { class: 'matrix-legend' },
+      h('b', null, 'Columns:'), ` trophies #1-#${data.trophies.length} (official list number) in roadmap order; hover a number for the name. `,
+      h('b', null, 'Rows:'), ` the ${sites.length} cited sites, most guides first. `, h('b', null, 'Dot:'), ' that guide cites the site, brighter for more claims.'),
     h('div', { class: 'matrix-wrap' },
       h('table', { class: 'matrix' },
         h('thead', null, h('tr', null,

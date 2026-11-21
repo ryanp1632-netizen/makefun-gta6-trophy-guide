@@ -122,17 +122,17 @@ h2, h3, h4 { margin: 0; }
 .badge.cited { background: #0f3330; color: #8ff0c4; border: 1px solid #1f6158; }
 .tag { font-style: normal; font-size: 11px; color: var(--soft); background: var(--panel-3); border-radius: 4px; padding: 0 5px; white-space: nowrap; }
 .tag.count { color: var(--teal); font-weight: 700; }
-.tag.src { color: #8ff0c4; }
+.tag.src { color: #b4ffe0; background: #124038; border: 1px solid #23735f; font-weight: 700; font-size: 11.5px; }
 .cites { white-space: nowrap; }
 .cite {
-  background: none; border: 0; padding: 0 1px; color: var(--teal); font-weight: 700; font-size: 12.5px; cursor: pointer;
+  background: none; border: 0; padding: 0 1px; color: #4ff0da; font-weight: 750; font-size: 12.5px; cursor: pointer;
 }
 .cite:hover { text-decoration: underline; }
 
 /* Tracker: three panes */
 #app { flex: 1; min-height: 0; }
 .view { height: 100%; }
-.three-pane { display: grid; grid-template-columns: 348px minmax(0, 1fr) 240px; }
+.three-pane { display: grid; grid-template-columns: 344px minmax(0, 1fr) 232px; }
 #list-pane { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--panel); }
 #filters { padding: 5px 7px 5px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; background: #101827; }
 .chip-row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
@@ -191,8 +191,8 @@ h2, h3, h4 { margin: 0; }
 .empty { padding: 16px; color: var(--muted); }
 
 /* Guide pane */
-#guide-panel { overflow-y: auto; padding: 7px 11px 14px; min-height: 0; }
-.guide-head { display: grid; grid-template-columns: 30px 1fr auto; gap: 3px 9px; align-items: start; padding-bottom: 5px; }
+#guide-panel { overflow-y: auto; padding: 5px 11px 14px; min-height: 0; }
+.guide-head { display: grid; grid-template-columns: 30px 1fr auto; gap: 2px 9px; align-items: start; padding-bottom: 3px; }
 .guide-head > .medal { margin-top: 2px; }
 .guide-head > .medal { width: 30px; height: 30px; font-size: 14px; }
 .guide-title h2 { font-size: 20px; line-height: 1.15; }
@@ -200,7 +200,7 @@ h2, h3, h4 { margin: 0; }
 .earned-controls { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .earn-button { background: var(--panel-3); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 3px 10px; font-weight: 700; font-size: 13px; }
 .earn-button.on { background: #14453c; border-color: var(--teal); color: #8ff0c4; }
-.counter { grid-column: 2 / 4; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--soft); background: #0f2a2a; border: 1px solid #1f6158; border-radius: 7px; padding: 2px 8px; }
+.counter { grid-column: 2 / 4; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--soft); background: #0f2a2a; border: 1px solid #1f6158; border-radius: 7px; padding: 1px 8px; }
 .counter-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: #8ff0c4; }
 .counter-value b { color: var(--teal); font-size: 16px; }
 .counter button { width: 21px; height: 21px; border-radius: 5px; border: 1px solid #1f6158; background: var(--panel-2); color: var(--text); padding: 0; line-height: 1; font-weight: 800; }
@@ -214,7 +214,7 @@ h2, h3, h4 { margin: 0; }
 .official-box h3 small, .note h3 small, .how-to h3 small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; color: var(--muted); }
 .official { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.3; }
 .badges { display: flex; flex-wrap: wrap; gap: 3px 4px; margin: 3px 0 0; }
-.note { border-radius: 7px; padding: 4px 9px 5px; margin-top: 5px; border: 1px solid var(--line); font-size: 13.5px; line-height: 1.32; }
+.note { border-radius: 7px; padding: 4px 9px 5px; margin-top: 4px; border: 1px solid var(--line); font-size: 13.5px; line-height: 1.32; }
 .note p { margin: 1px 0 0; }
 .note.window.missable { background: #2a1214; border-color: #8a3a35; }
 .note.window.missable h3 { color: #ff9b91; }
@@ -228,9 +228,9 @@ h2, h3, h4 { margin: 0; }
 .side i { font-style: normal; font-weight: 800; color: #1a1430; background: var(--violet); border-radius: 3px; padding: 0 4px; margin-right: 5px; font-size: 11px; }
 .call b { color: var(--violet); }
 .note.unconfirmed { background: #182030; border-style: dashed; }
-.how-to { margin-top: 6px; }
+.how-to { margin-top: 4px; }
 .steps { margin: 4px 0 0; padding: 0; list-style: none; counter-reset: step; }
-.steps li { counter-increment: step; position: relative; padding: 2px 0 2px 25px; border-bottom: 1px solid #1d2739; font-size: 13.5px; line-height: 1.32; }
+.steps li { counter-increment: step; position: relative; padding: 1.5px 0 1.5px 25px; border-bottom: 1px solid #1d2739; font-size: 13.5px; line-height: 1.32; }
 .steps li::before {
   content: counter(step); position: absolute; left: 0; top: 3px; width: 18px; height: 18px; border-radius: 50%;
   background: var(--accent); color: #1a0710; font-weight: 800; font-size: 11.5px; display: grid; place-items: center;
@@ -263,8 +263,8 @@ h2, h3, h4 { margin: 0; }
 }
 
 /* Shared view header */
-.view:not(.three-pane) { overflow-y: auto; padding: 8px 12px 16px; }
-.view-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 5px; }
+.view:not(.three-pane) { overflow-y: auto; padding: 5px 12px 16px; }
+.view-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
 .view-head h2 { font-size: 18px; white-space: nowrap; }
 .view-head p { margin: 0; color: var(--muted); font-size: 13px; }
 
@@ -287,7 +287,7 @@ h2, h3, h4 { margin: 0; }
 .missions { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.3; }
 .chapter-warn { margin: auto 0 0; font-size: 12px; color: #ffd08a; line-height: 1.3; background: #2a1e0d; border-radius: 5px; padding: 3px 5px; }
 .chapter-warn b { color: var(--warn); }
-.stage-cols { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: 1.04fr 0.94fr 1.26fr 2.42fr 0.86fr; gap: 6px; align-items: stretch; }
+.stage-cols { list-style: none; margin: 5px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 0.92fr 1.2fr 2.3fr 1.08fr; gap: 6px; align-items: stretch; }
 .stage-col { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 6px 6px; }
 .stage-col header { display: grid; grid-template-columns: 22px 1fr auto; gap: 6px; align-items: center; }
 .stage-col h3 { white-space: nowrap; overflow: hidden; line-height: 1.15; }
@@ -295,6 +295,10 @@ h2, h3, h4 { margin: 0; }
 .road-trophies { list-style: none; margin: 3px 0 0; padding: 0; display: grid; gap: 1px; }
 .stage-col .road-trophies { display: flex; flex-wrap: wrap; gap: 0 10px; }
 .stage-col .road-trophies li { flex: none; max-width: 100%; }
+/* The last card is narrow: a flagged trophy keeps its name on one line and its badge on the next, under the name. */
+.stage-col:last-child .road-trophies li:has(.badge) { display: grid; grid-template-columns: 16px minmax(0, 1fr); column-gap: 4px; row-gap: 1px; }
+.stage-col:last-child .road-trophies li:has(.badge) .badge { grid-column: 2; justify-self: start; }
+.stage-col:last-child .road-trophies .road-name { white-space: normal; }
 .stage-col .road-name { flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .road-trophies .road-name { white-space: normal; flex: 1 1 0; line-height: 1.2; }
 .stage-col .tick { display: none; }
@@ -314,15 +318,17 @@ h2, h3, h4 { margin: 0; }
 li.earned .tick { background: var(--teal); border-color: var(--teal); }
 
 /* Missables */
-.timeline { list-style: none; margin: 0 0 7px; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
-.timeline li { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--line); border-radius: 6px; padding: 4px 6px; min-height: 66px; display: flex; flex-direction: column; gap: 3px; }
+.timeline { list-style: none; margin: 0 0 7px; padding: 0; display: grid; grid-template-columns: 1.7fr 1fr 1fr 1fr 1fr 1fr; gap: 4px; align-items: stretch; }
+.timeline li { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--line); border-radius: 6px; padding: 4px 6px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; }
+.timeline li > b, .timeline li > small { flex: 1 0 100%; }
 .timeline li.has { border-top-color: var(--warn); }
 .timeline b { font-size: 12.5px; color: var(--soft); }
-.pin { font-size: 11.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; line-height: 1.25; }
+.pin { font-size: 11.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; line-height: 1.25; max-width: 100%; }
+.pin i { font-style: normal; color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; }
 .pin.missable { background: var(--danger); color: #1b0606; }
 .pin.possible { background: var(--warn); color: #231502; }
 .pin.risk { background: #3b2a12; color: var(--warn); border: 1px solid #7a5520; }
-.pin.other { background: var(--panel-3); color: var(--muted); font-weight: 500; }
+.pin.other { background: var(--panel-3); color: var(--soft); font-weight: 500; }
 .pin .cite { font-size: 10.5px; }
 .missable-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .missable-card { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 8px; padding: 6px 9px; cursor: pointer; }
@@ -337,15 +343,17 @@ li.earned .tick { background: var(--teal); border-color: var(--teal); }
 .missable-card dd.ponr { color: #ffd08a; }
 .ponr-note { margin-top: auto; font-size: 11.5px; line-height: 1.25; color: #ffd08a; }
 .ponr-note.safe { color: #8ff0c4; }
-.missable-foot { display: grid; grid-template-columns: 1.15fr 1fr; gap: 8px; margin-top: 8px; }
+.ponr-note.quiet { color: var(--muted); margin-top: 0; }
 .safe-list, .save-plan { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; }
-.safe-list { border-left: 4px solid var(--teal); }
+.safe-list { border-left: 4px solid var(--teal); margin-top: 7px; }
+.safe-list ul { grid-template-columns: 1fr 1fr; column-gap: 14px; }
 .safe-list h3, .save-plan h3 { font-size: 13.5px; display: flex; gap: 8px; align-items: baseline; margin-bottom: 3px; }
 .safe-list h3 small, .save-plan h3 small { color: var(--muted); font-weight: 500; font-size: 12px; }
 .safe-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .safe-list li { font-size: 13px; line-height: 1.3; color: var(--soft); cursor: pointer; }
 .safe-list li .medal { width: 16px; height: 16px; font-size: 9px; margin-right: 4px; vertical-align: -3px; }
 .safe-list li b { color: #8ff0c4; }
+.missable-grid .save-plan { border-left: 4px solid var(--teal); }
 .save-plan ol { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 13px; line-height: 1.3; color: var(--soft); }
 
 /* Sources */
@@ -354,10 +362,12 @@ li.earned .tick { background: var(--teal); border-color: var(--teal); }
 .total b { font-size: 19px; color: #8ff0c4; line-height: 1.1; }
 .total span { font-size: 12.5px; font-weight: 650; }
 .total small { font-size: 11.5px; color: var(--muted); }
+.matrix-legend { margin: 0 0 4px; font-size: 12.5px; color: var(--muted); }
+.matrix-legend b { color: var(--soft); }
 .matrix-wrap { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
 .matrix { border-collapse: collapse; width: 100%; table-layout: fixed; }
 .matrix th, .matrix td { padding: 0; text-align: center; }
-.matrix .src-col { width: 122px; text-align: left; padding: 0 6px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.matrix .src-col { width: 138px; text-align: left; padding: 0 6px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .matrix .num-col { width: 104px; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .matrix .num-col b { color: var(--text); }
 .matrix thead th { font-size: 9px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--line); }
@@ -384,3 +394,11 @@ li.earned .tick { background: var(--teal); border-color: var(--teal); }
 .steps li.multi::before { background: var(--teal); color: #06221d; }
 .multi-key { color: #8ff0c4; font-weight: 700; }
 .multi-key::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--teal); margin-right: 4px; }
+
+/* Roadmap: the save routine strip under the stages */
+.road-checklist { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 10px; align-items: start; margin-top: 6px; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: var(--radius); padding: 4px 9px 5px; }
+.road-checklist h3 { font-size: 13.5px; display: flex; flex-direction: column; gap: 1px; line-height: 1.2; color: var(--warn); }
+.road-checklist h3 small { color: var(--muted); font-weight: 500; font-size: 12px; }
+.road-checklist ol { margin: 0; padding: 0; list-style: none; counter-reset: save; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.road-checklist li { counter-increment: save; position: relative; padding-left: 21px; font-size: 12.5px; line-height: 1.28; color: var(--soft); }
+.road-checklist li::before { content: counter(save); position: absolute; left: 0; top: 1px; width: 16px; height: 16px; border-radius: 4px; background: var(--warn); color: #231502; font-weight: 800; font-size: 10.5px; display: grid; place-items: center; }

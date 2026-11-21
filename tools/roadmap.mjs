@@ -55,7 +55,7 @@ export const GROUPS = [
 export const OTHER_MISSABLES = [
   { name: 'Shirley\'s errands', ch: 1, cite: ['pp-sf', 'ol-miss', 'egm'] },
   { name: 'Jason\'s cash stash & Ganado', ch: 1, cite: ['ol-miss'] },
-  { name: 'This Is a Free Call From…', ch: 4, cite: ['tn', 'gbm'] },
+  { name: 'This Is a Free Call From…', kind: 'optional call', ch: 4, cite: ['tn', 'gbm'] },
 ];
 
 // Trophies a guide might suspect, checked and found safe: each says why, with its sources.
@@ -69,10 +69,10 @@ export const NOT_MISSABLE = [
 
 // The save plan that protects every window above, each line cited.
 export const SAVE_PLAN = [
-  { text: '15 manual save slots plus one autosave; manual saves only in free roam.', cite: ['boom-save', 'ig-replay', 'ps'] },
-  { text: 'Save at the start of each chapter and keep those saves.', cite: ['gg', 'ol', 'ps-story'] },
-  { text: 'Hey Arnold! (Chapter 1) has a permanent choice: save before it.', cite: ['ol-miss'] },
-  { text: 'Keep an untouched save from just before the finale.', cite: ['ol-miss', 'ol'] },
+  { beforeNoReturn: true, text: '15 manual save slots plus one autosave; manual saves only in free roam.', cite: ['boom-save', 'ig-replay', 'ps'] },
+  { beforeNoReturn: true, text: 'Save at the start of each chapter and keep those saves.', cite: ['gg', 'ol', 'ps-story'] },
+  { beforeNoReturn: true, text: 'Hey Arnold! (Chapter 1) has a permanent choice: save before it.', cite: ['ol-miss'] },
+  { beforeNoReturn: true, text: 'Keep an untouched save from just before the finale.', cite: ['ol-miss', 'ol'] },
   { text: 'Cheats unlock after the story and switch trophies off: keep a clean save.', cite: ['tt-cheats', 'kg', 'fx'] },
 ];
 

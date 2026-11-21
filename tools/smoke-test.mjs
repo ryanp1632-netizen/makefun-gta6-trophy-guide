@@ -3,6 +3,7 @@
 // status filters and search, the guide's official box, missable window, disputes and cited steps, the source cards,
 // export-file validation on import (shape, version, unknown ids skipped, counters in range, summary, undo), every view rendering, and no request leaving app/. Usage: node tools/smoke-test.mjs
 import { startBrowser } from './cdp.mjs';
+import { SHOTS } from './shoot.mjs';
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'pass' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`); };
@@ -177,6 +178,19 @@ try {
   check('demo saves under its own key', (await b.evaluate('JSON.parse(localStorage.getItem("leonida55.demo.v1")).earned.length')) === 11);
   await b.open('/?view=tracker');
   check('demo mode never overwrites saved progress', /^2 \/ 55/.test(await b.evaluate(text('.big-count'))) && (await b.evaluate('JSON.parse(localStorage.getItem("leonida55.progress.v1")).earned.join()')) === '4,28');
+  for (const shot of SHOTS) {
+    await b.open(shot.path);
+    check(`screenshot ${shot.file} keeps the spoiler shield on`, await b.evaluate('document.getElementById("spoiler-toggle").checked && /on$/.test(document.querySelector("#spoiler-setting span").textContent)'));
+  }
+  await b.open('/?demo=1&view=roadmap&spoilers=1');
+  const strip = await b.evaluate('[...document.querySelectorAll("#roadmap .road-checklist li")].map((li) => li.querySelectorAll(".cite").length)');
+  check('roadmap: cited "Before each point of no return" strip', strip.length >= 3 && strip.every((n) => n > 0), JSON.stringify(strip));
+  check('roadmap: shield hides later story trophies as placeholders', await b.evaluate('[...document.querySelectorAll("#roadmap .road-name")].some((n) => n.textContent.startsWith("Story trophy"))'));
+  await b.open('/?demo=1&view=missables&spoilers=1');
+  check('missables: timeline shows the full optional call title', (await b.evaluate(text('.timeline'))).includes('“This Is a Free Call From…”'));
+  check('missables: save plan sits beside the cards', await b.evaluate('document.querySelector(".missable-grid > .save-plan li .cite") !== null'));
+  await b.open('/?demo=1&view=sources');
+  check('sources: matrix legend explains the trophy columns', /Columns:.*#1-#55.*roadmap order.*hover/.test(await b.evaluate(text('.matrix-legend'))));
   check('no request left app/, no console error', b.problems.length === 0, b.problems.join('; '));
 } finally {
   await b.close();

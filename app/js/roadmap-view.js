@@ -18,7 +18,16 @@ export function renderRoadmapView(root, ctx) {
       renderStageBand(data.roadmap.stages[0], groupsOf(1), ctx),
       h('ol', { class: 'chapter-cols' }, groupsOf(1).map((g) => renderChapterColumn(g, ctx)))),
     h('ol', { class: 'stage-cols' }, data.roadmap.stages.slice(1).map((s) => renderStageColumn(s, groupsOf(s.id), ctx))),
+    renderSaveChecklist(ctx),
   );
+}
+
+// The cited save routine that keeps every window open (the save plan's steps marked beforeNoReturn), as a strip
+// under the stages.
+function renderSaveChecklist(ctx) {
+  return h('section', { class: 'road-checklist' },
+    h('h3', null, 'Before each point of no return', h('small', null, 'no mission replay')),
+    h('ol', null, (ctx.data.roadmap.savePlan ?? []).filter((p) => p.beforeNoReturn).map((p) => h('li', null, p.text, ' ', renderCiteMarks(p.cite, ctx)))));
 }
 
 function trophiesIn(groups, ctx) {

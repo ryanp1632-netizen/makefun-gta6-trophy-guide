@@ -16,7 +16,7 @@ node serve.ts   # then open the printed address (static files, no build step, wo
 
 - `app/`: the guide. `index.html`, `css/app.css`, `js/*.js` (one job per module; roadmap, missables and sources views load on demand), `data/trophies.json` (official list + guides, each step's citations), `data/sources.tsv` (the 208 cited pages, one a line), `data/roadmap.json`.
 - `tools/build-data.mjs`: builds `app/data/` from the untouched official list (`tools/official-list.json`) and our guides (`tools/guides.mjs` plus the second-source pass in `tools/backing.mjs`, `tools/sources.mjs` with `tools/sources-added.mjs`, `tools/roadmap.mjs`), refusing any uncited step, one-sided dispute, uncited point of no return or unused page.
-- `tools/shoot.mjs`: takes the 4 screenshots in headless Chrome (1120x700 CSS viewport at scale 8/7, demo progress via `?demo=1`, saved under its own key so it never touches your progress); `tools/smoke-test.mjs`: 54 checks of the tracker in a real browser.
+- `tools/shoot.mjs`: takes the 4 screenshots in headless Chrome (1120x700 CSS viewport at scale 8/7, demo progress via `?demo=1`, saved under its own key so it never touches your progress, spoiler shield on in every shot; each pane ends on a whole row, step or card); `tools/smoke-test.mjs`: 63 checks of the tracker in a real browser.
 - `main.ts`: validates the data, screenshots and offline references, then hands in `app/`, `screenshots/` and `dossier.json`.
 
 ---

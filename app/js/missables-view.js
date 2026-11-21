@@ -1,6 +1,6 @@
 // The missables view: a timeline of points of no return by chapter, one card per missable, possibly missable or
 // at-risk trophy (why, point of no return, what to do first, all cited), then the trophies checked and found safe and
-// the save plan that protects every window. Loaded on demand by import().
+// the save plan that protects every window (beside the cards). Loaded on demand by import().
 import { h } from './dom.js';
 import { displayName, displayDescription } from './spoilers.js';
 import { renderCiteMarks, renderMedal } from './citations.js';
@@ -22,13 +22,15 @@ export function renderMissablesView(root, ctx) {
       h('p', null, `${flagged.length} flagged: ${count('missable')} missable, ${count('possible')} possibly missable, ${count('risk')} at risk; the other ${data.trophies.length - flagged.length} checked and none. `,
         intro.text, ' ', renderCiteMarks(intro.cite, ctx))),
     renderMissableTimeline(flagged, ctx),
-    h('div', { class: 'missable-grid' }, flagged.map((t) => renderMissableCard(t, ctx))),
-    h('div', { class: 'missable-foot' },
-      renderSafeList(ctx),
-      h('section', { class: 'save-plan' },
-        h('h3', null, 'Save plan', h('small', null, 'no mission replay, no New Game+')),
-        h('ol', null, (data.roadmap.savePlan ?? []).map((p) => h('li', null, p.text, ' ', renderCiteMarks(p.cite, ctx)))))),
+    h('div', { class: 'missable-grid' }, flagged.map((t) => renderMissableCard(t, ctx)), renderSavePlan(ctx)),
+    renderSafeList(ctx),
   );
+}
+
+function renderSavePlan(ctx) {
+  return h('section', { class: 'save-plan' },
+    h('h3', null, 'Save plan', h('small', null, 'no mission replay, no New Game+')),
+    h('ol', null, (ctx.data.roadmap.savePlan ?? []).map((p) => h('li', null, p.text, ' ', renderCiteMarks(p.cite, ctx)))));
 }
 
 function renderMissableTimeline(flagged, ctx) {
@@ -41,9 +43,11 @@ function renderMissableTimeline(flagged, ctx) {
     return h('li', { class: here.length ? 'has' : '' },
       h('b', null, label),
       here.map((t) => h('span', { class: `pin ${t.missable.level}` }, displayName(t, ctx.store))),
-      otherMissables.filter((m) => m.ch === i).map((m) => h('span', { class: 'pin other', title: 'Time-limited; no trophy needs it' }, m.name, ' ', renderCiteMarks(m.cite, ctx))),
+      otherMissables.filter((m) => m.ch === i).map((m) => h('span', { class: 'pin other', title: 'Time-limited; no trophy needs it' },
+        m.kind ? [h('i', null, `${m.kind} `), `“${m.name}”`] : m.name, ' ', renderCiteMarks(m.cite, ctx))),
       group?.ponr && h('small', { class: 'ponr-note' }, 'No return: ', group.ponr.text),
-      i === 6 && h('small', { class: 'ponr-note safe' }, 'Free roam resumes before the finale; everything else stays open.'));
+      i === 6 && h('small', { class: 'ponr-note safe' }, 'Free roam resumes before the finale; everything else stays open.'),
+      !here.length && !group?.ponr && i !== 6 && h('small', { class: 'ponr-note quiet' }, 'No trophy window closes here.'));
   }).filter(Boolean));
 }
 
