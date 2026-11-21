@@ -1,4 +1,4 @@
-// Boot: read the URL (?view, ?trophy, ?kind, ?grade, ?status, ?q, ?spoilers, ?demo), load the data, wire the top
+// Boot: read the URL (?view, ?trophy, ?stage, ?kind, ?grade, ?status, ?q, ?spoilers, ?demo), load the data, wire the top
 // bar, and render the current view. The roadmap, missables and sources views load on demand.
 import { byId, showToast } from './dom.js';
 import { loadGuideData } from './data.js';
@@ -11,6 +11,7 @@ import { renderProgressSummary } from './progress-summary.js';
 import { renderTrophyList } from './trophy-list.js';
 import { renderGuidePanel } from './guide-panel.js';
 import { renderSidePanel } from './sources-panel.js';
+import { renderRoadmapStrip } from './roadmap-strip.js';
 
 const VIEWS = {
   tracker: { el: 'tracker' },
@@ -33,6 +34,7 @@ async function startApp() {
       view: viewFrom(params),
       selectedId: data.byId.has(Number(params.get('trophy'))) ? Number(params.get('trophy')) : data.ordered[0].id,
       highlightedSource: null,
+      stage: Number(params.get('stage')) || null,
     },
   };
   ctx.refreshList = () => renderTrophyList(byId('trophy-list'), ctx);
@@ -44,6 +46,12 @@ async function startApp() {
     syncUrl(ctx);
     renderCurrentView(ctx);
     if (view) scrollSelectedIntoView();
+  };
+  ctx.openRoadmapStage = (stage) => {
+    ctx.state.stage = stage;
+    ctx.state.view = 'roadmap';
+    syncUrl(ctx);
+    renderCurrentView(ctx);
   };
   ctx.highlightSource = (id) => {
     ctx.state.highlightedSource = id;
@@ -66,6 +74,7 @@ async function renderCurrentView(ctx) {
   byId('spoiler-toggle').checked = ctx.store.get().settings.spoilers;
   renderProgressSummary(byId('progress-summary'), ctx.data, ctx.store);
   if (view === 'tracker') {
+    renderRoadmapStrip(byId('roadmap-strip'), ctx);
     renderFilterControls(byId('filters'), ctx);
     renderTrophyList(byId('trophy-list'), ctx);
     renderGuidePanel(byId('guide-panel'), ctx);
@@ -95,12 +104,14 @@ function wireTopBar(ctx) {
   document.querySelectorAll('#view-tabs a').forEach((a) => a.addEventListener('click', (e) => {
     e.preventDefault();
     ctx.state.view = a.dataset.view;
+    ctx.state.stage = null;
     syncUrl(ctx);
     renderCurrentView(ctx);
   }));
   window.addEventListener('popstate', () => {
     const params = new URLSearchParams(location.search);
     ctx.state.view = viewFrom(params);
+    ctx.state.stage = Number(params.get('stage')) || null;
     if (ctx.data.byId.has(Number(params.get('trophy')))) ctx.state.selectedId = Number(params.get('trophy'));
     renderCurrentView(ctx);
   });
@@ -110,6 +121,8 @@ function syncUrl(ctx) {
   const params = new URLSearchParams(location.search);
   params.set('view', ctx.state.view);
   params.set('trophy', ctx.state.selectedId);
+  if (ctx.state.view === 'roadmap' && ctx.state.stage) params.set('stage', ctx.state.stage);
+  else params.delete('stage');
   history.pushState(null, '', `?${params}`);
 }
 

@@ -14,12 +14,21 @@ export function renderRoadmapView(root, ctx) {
     h('header', { class: 'view-head' },
       h('h2', null, 'Roadmap to the platinum'),
       h('p', null, `${data.roadmap.stages.length} stages, ${data.roadmap.groups.length} steps in play order · ${done}/${data.trophies.length} earned · placed by the chapter or mission each official description names`)),
-    h('section', { class: 'road-story' },
+    h('section', { class: 'road-story', dataset: { stage: data.roadmap.stages[0].id } },
       renderStageBand(data.roadmap.stages[0], groupsOf(1), ctx),
       h('ol', { class: 'chapter-cols' }, groupsOf(1).map((g) => renderChapterColumn(g, ctx)))),
     h('ol', { class: 'stage-cols' }, data.roadmap.stages.slice(1).map((s) => renderStageColumn(s, groupsOf(s.id), ctx))),
     renderSaveChecklist(ctx),
   );
+  focusStage(root, ctx.state.stage);
+}
+
+// Opened from the tracker's roadmap strip (?stage=N): light that stage and bring it into view.
+function focusStage(root, stage) {
+  const target = stage && root.querySelector(`[data-stage="${stage}"]`);
+  if (!target) return;
+  target.classList.add('focus');
+  target.scrollIntoView({ block: 'nearest' });
 }
 
 // The cited save routine that keeps every window open (the save plan's steps marked beforeNoReturn), as a strip
@@ -60,7 +69,7 @@ function renderChapterColumn(group, ctx) {
 
 function renderStageColumn(stage, groups, ctx) {
   const list = trophiesIn(groups, ctx);
-  return h('li', { class: 'stage-col' },
+  return h('li', { class: 'stage-col', dataset: { stage: stage.id } },
     h('header', null,
       h('span', { class: 'stage-num' }, stage.id),
       h('h3', null, stage.title),

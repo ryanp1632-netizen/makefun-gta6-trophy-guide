@@ -1,6 +1,6 @@
 // Drives the real app in headless Chrome and checks the tracker works: roadmap-ordered grouped list, saving and
 // reloading progress and counters, the spoiler shield and per-trophy reveal, kind/missable/PSN-hidden/disputed/grade/
-// status filters and search, the guide's official box, missable window, disputes and cited steps, the source cards,
+// status filters and search, the guide's official box, missable window, disputes and cited steps, the source cards, the roadmap strip and missables watch,
 // export-file validation on import (shape, version, unknown ids skipped, counters in range, summary, undo), every view rendering, and no request leaving app/. Usage: node tools/smoke-test.mjs
 import { startBrowser } from './cdp.mjs';
 import { SHOTS } from './shoot.mjs';
@@ -50,7 +50,7 @@ try {
   const stepCites = await b.evaluate('[...document.querySelectorAll(".steps li")].map((li) => li.querySelectorAll(".cite").length)');
   check('every step of the guide has [n] citations', stepCites.length >= 5 && stepCites.every((n) => n > 0), JSON.stringify(stepCites));
   check('source cards list each cited page with its use', await b.evaluate('document.querySelectorAll(".source-card").length') >= 3 && /claims? here · in \d+\/55 guides/.test(await b.evaluate(text('.source-card'))));
-  check('next up lists unearned trophies in roadmap order', await b.evaluate('document.querySelectorAll(".next-up li").length') === 4);
+  check('next up lists unearned trophies in roadmap order', await b.evaluate('document.querySelectorAll(".next-up li").length') === 3);
 
   const chip = (label) => `[...document.querySelectorAll("#filters .chip")].find((c) => c.textContent.startsWith(${JSON.stringify(label)})).click()`;
   const counts = {};
@@ -172,9 +172,37 @@ try {
   const visible = await b.evaluate(`(() => { const list = document.getElementById('trophy-list').getBoundingClientRect();
     return [...document.querySelectorAll('#trophy-list .trophy-row')].filter((r) => { const b = r.getBoundingClientRect(); return b.top >= list.top && b.top < list.bottom - 20; })
       .map((r) => r.classList.contains('masked')); })()`);
-  check('demo cover: 7+ rows in view, at most one spoiler placeholder', visible.length >= 7 && visible.filter(Boolean).length <= 1, JSON.stringify(visible));
+  check('demo cover: 8+ rows in view, at most one spoiler placeholder', visible.length >= 8 && visible.filter(Boolean).length <= 1, JSON.stringify(visible));
   const next = await b.evaluate('[...document.querySelectorAll(".next-up li")].map((li) => li.textContent)');
-  check('next up: 4 trophies, at most one hidden story trophy', next.length === 4 && next.filter((t) => t.includes('(hidden)')).length <= 1, JSON.stringify(next));
+  check('next up: 3 trophies, at most one hidden story trophy', next.length === 3 && next.filter((t) => t.includes('(hidden)')).length <= 1, JSON.stringify(next));
+  const stages = await b.evaluate(`[...document.querySelectorAll('#roadmap-strip .strip-stage')].map((s) => ({ id: s.dataset.stage, count: s.querySelector('.strip-count').textContent, current: s.classList.contains('current') }))`);
+  const stripTotal = stages.reduce((n, s) => n + Number(s.count.split('/')[1]), 0);
+  const stripEarned = stages.reduce((n, s) => n + Number(s.count.split('/')[0]), 0);
+  check('roadmap strip: 6 stages in play order, totals sum to 55, earned sum to 11', stages.map((s) => s.id).join() === '1,2,3,4,5,6' && stripTotal === 55 && stripEarned === 11, JSON.stringify(stages.map((s) => s.count)));
+  check('roadmap strip: the first unfinished stage is lit, and only it', stages.filter((s) => s.current).length === 1 && stages.find((s) => s.current).id === stages.find((s) => s.count.split('/')[0] !== s.count.split('/')[1]).id);
+  const watch = await b.evaluate(`[...document.querySelectorAll('#missables-watch li')].map((li) => ({ id: Number(li.dataset.id), name: li.querySelector('.watch-name').textContent, cites: li.querySelectorAll('.cite').length, badge: li.querySelector('.badge')?.textContent, ponr: li.querySelector('.watch-ponr').textContent }))`);
+  const flaggedIds = await b.evaluate(`(async () => { const { loadGuideData } = await import('./js/data.js'); const d = await loadGuideData(); return d.trophies.filter((t) => t.missable).map((t) => t.id).sort((a, b) => a - b); })()`);
+  check('missables watch lists exactly the flagged trophies, each with level, point of no return and a citation',
+    JSON.stringify(watch.map((w) => w.id).sort((a, b) => a - b)) === JSON.stringify(flaggedIds) && watch.every((w) => w.cites > 0 && w.badge && w.ponr.length > 4), JSON.stringify(watch.map((w) => `${w.id}:${w.badge}`)));
+  const shielded = await b.evaluate(`(async () => {
+    const { renderMissablesWatch } = await import('./js/missables-watch.js');
+    const { loadGuideData } = await import('./js/data.js');
+    const { createProgressStore } = await import('./js/store.js');
+    const data = await loadGuideData();
+    const t = data.trophies.find((x) => x.missable);
+    t.kinds = [...t.kinds, 'story'];
+    const store = createProgressStore({ demo: true });
+    store.get().settings.spoilers = true;
+    const shown = (on) => { store.get().settings.spoilers = on; return renderMissablesWatch({ data, store, state: {}, selectTrophy() {} }).querySelector('[data-id="' + t.id + '"] .watch-name').textContent; };
+    return { name: t.name, on: shown(true), off: shown(false), earned: store.isEarned(t.id) };
+  })()`);
+  check("missables watch: the spoiler shield hides a story trophy's name there", shielded.earned || (shielded.on.startsWith('Story trophy') && shielded.on !== shielded.name && shielded.off === shielded.name), JSON.stringify(shielded));
+  await b.evaluate(`document.querySelector('#missables-watch li[data-id="25"]').click()`);
+  check("missables watch: a click opens that trophy's guide", /Strangers & Freaks/.test(await b.evaluate(text('#guide-panel h2'))));
+  await b.evaluate(`document.querySelector('#roadmap-strip .strip-stage[data-stage="5"]').click()`);
+  await b.evaluate('new Promise((r) => setTimeout(r, 300))');
+  check('roadmap strip: a click opens the roadmap at that stage', await b.evaluate(`!document.getElementById('roadmap').hidden && document.querySelector('#roadmap .focus')?.dataset.stage === '5' && location.search.includes('stage=5') && getComputedStyle(document.getElementById('roadmap-strip')).display === 'none'`));
+  await b.open('/?demo=1&view=tracker&trophy=28&top=1');
   check('demo saves under its own key', (await b.evaluate('JSON.parse(localStorage.getItem("leonida55.demo.v1")).earned.length')) === 11);
   await b.open('/?view=tracker');
   check('demo mode never overwrites saved progress', /^2 \/ 55/.test(await b.evaluate(text('.big-count'))) && (await b.evaluate('JSON.parse(localStorage.getItem("leonida55.progress.v1")).earned.join()')) === '4,28');

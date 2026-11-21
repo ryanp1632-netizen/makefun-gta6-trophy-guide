@@ -1,20 +1,22 @@
-// The right column beside a guide: "Next up" (the next unearned trophies in roadmap order) and one card per page the
-// guide cites: number, site, page title, domain, date read, claims in this guide and how many guides cite it.
+// The right column beside a guide: "Next up" (the next unearned trophies in roadmap order), the missables watch and
+// one card per page the guide cites: number, site, page title, domain, date read, claims in this guide and how many guides cite it.
 import { h } from './dom.js';
 import { displayName, isSpoilerHidden } from './spoilers.js';
 import { renderMedal, plural } from './citations.js';
 import { citationsOf, formatCount } from './data.js';
+import { renderMissablesWatch } from './missables-watch.js';
 
 export function renderSidePanel(root, ctx) {
   const trophy = ctx.data.byId.get(ctx.state.selectedId);
   root.replaceChildren(
     renderNextUp(ctx),
+    renderMissablesWatch(ctx),
     trophy ? renderSourceCards(trophy, ctx) : null);
 }
 
 // The next unearned trophies in roadmap order. While the spoiler shield is on, only the first still-hidden story
 // trophy is listed (as "Story trophy · Ch N (hidden)"), so the list stays useful instead of a column of placeholders.
-export function pickNextUp(ctx, limit = 4) {
+export function pickNextUp(ctx, limit = 3) {
   const { data, store } = ctx;
   const picked = [];
   let hiddenShown = false;
